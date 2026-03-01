@@ -1,7 +1,7 @@
 import * as http from "http";
 import { fetchActiveSyncConfigs, runSyncConfig } from "./runner.js";
 
-const INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_MS ?? "300000", 10); // default 5 min
+const INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_MS ?? "120000", 10); // default 2 min
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
 const WORKER_SECRET = process.env.WORKER_SECRET ?? "";
 
