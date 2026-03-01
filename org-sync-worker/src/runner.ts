@@ -132,9 +132,12 @@ export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
     console.log(`[runner] Querying records modified since ${sinceDate.toISOString()}`);
 
     // Extract the source fields we need from the field mappings
-    const sourceFields = config.field_mappings.map((m) => m.sourceField);
+    const sourceFields = config.field_mappings
+      .map((m) => m.sourceField)
+      .filter((f) => f && f.trim() !== "");
+
     if (sourceFields.length === 0) {
-      console.log(`[runner] No field mappings defined — skipping sync "${config.name}"`);
+      console.log(`[runner] No field mappings defined — skipping sync "${config.name}". Add field mappings in the portal to activate this sync.`);
       await finalizeSyncLog(logId, result);
       return result;
     }
