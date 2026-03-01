@@ -12,8 +12,10 @@ export interface ConnectedOrg {
 }
 
 export interface FieldMapping {
-  sourceField: string;
-  targetField: string;
+  source_field: string;
+  target_field: string;
+  source_label?: string;
+  target_label?: string;
 }
 
 export interface SyncFilter {

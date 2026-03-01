@@ -133,7 +133,7 @@ export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
 
     // Extract the source fields we need from the field mappings
     const sourceFields = config.field_mappings
-      .map((m) => m.sourceField)
+      .map((m) => m.source_field)
       .filter((f) => f && f.trim() !== "");
 
     if (sourceFields.length === 0) {
@@ -179,7 +179,7 @@ export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
     const upsertBatch = filtered.map((rec) => ({
       sourceRecordId: rec.Id as string,
       existingTargetId: existingMappings.get(rec.Id as string),
-      payload: mapRecord(rec, config.field_mappings),
+      payload: mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.source_field, targetField: m.target_field }))),
     }));
 
     // Push to target org
@@ -219,7 +219,7 @@ export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
       const reverseSourceRecords = await queryRecords(
         config.target_org,
         config.target_object,
-        config.field_mappings.map((m) => m.targetField),
+        config.field_mappings.map((m) => m.target_field).filter(Boolean),
         sinceDate
       );
 
@@ -235,7 +235,7 @@ export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
       const reverseBatch = reverseFiltered.map((rec) => ({
         sourceRecordId: rec.Id as string,
         existingTargetId: reverseMappings.get(rec.Id as string),
-        payload: mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.targetField, targetField: m.sourceField }))),
+        payload: mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.target_field, targetField: m.source_field }))),
       }));
 
       const reverseResults = await upsertRecords(config.source_org, config.source_object, reverseBatch);
