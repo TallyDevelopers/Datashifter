@@ -2,10 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import { Menu, Zap, LayoutDashboard, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
   { href: "/#features", label: "Features" },
@@ -16,12 +26,37 @@ const navLinks = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser({
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name,
+        });
+      }
+      setAuthLoading(false);
+    });
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.email?.[0]?.toUpperCase() ?? "U";
 
   return (
     <motion.header
@@ -36,10 +71,10 @@ export function Navbar() {
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg shadow-sm shadow-primary/20">
             <Zap className="h-4 w-4 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
+          <span className="text-xl font-bold tracking-tight gradient-text">
             OrgSync
           </span>
         </Link>
@@ -56,15 +91,63 @@ export function Navbar() {
           ))}
         </div>
 
+        {/* Desktop auth area */}
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button size="sm" className="gradient-bg border-0 text-white hover:opacity-90 transition-opacity" asChild>
-            <Link href="/signup">Get Started Free</Link>
-          </Button>
+          {!authLoading && (
+            user ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="gradient-bg text-xs font-semibold text-white">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        {user.name && <p className="text-sm font-medium">{user.name}</p>}
+                        {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/orgs">
+                        <User className="mr-2 h-4 w-4" />
+                        My Account
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button size="sm" className="gradient-bg border-0 text-white hover:opacity-90 transition-opacity" asChild>
+                  <Link href="/signup">Get Started Free</Link>
+                </Button>
+              </>
+            )
+          )}
         </div>
 
+        {/* Mobile menu */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild className="md:hidden">
             <Button variant="ghost" size="icon">
@@ -86,12 +169,23 @@ export function Navbar() {
                 ))}
               </div>
               <div className="flex flex-col gap-3 border-t pt-4">
-                <Button variant="outline" asChild>
-                  <Link href="/login">Log in</Link>
-                </Button>
-                <Button className="gradient-bg border-0 text-white" asChild>
-                  <Link href="/signup">Get Started Free</Link>
-                </Button>
+                {user ? (
+                  <>
+                    <Button className="gradient-bg border-0 text-white" asChild>
+                      <Link href="/dashboard">Go to Dashboard</Link>
+                    </Button>
+                    <Button variant="outline" onClick={handleSignOut}>Sign out</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild>
+                      <Link href="/login">Log in</Link>
+                    </Button>
+                    <Button className="gradient-bg border-0 text-white" asChild>
+                      <Link href="/signup">Get Started Free</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </SheetContent>

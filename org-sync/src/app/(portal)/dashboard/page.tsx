@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   Building2, ArrowLeftRight, Activity, CheckCircle2, XCircle,
   Clock, ArrowRight, Plus, RefreshCw, Loader2, AlertCircle,
-  LifeBuoy, Zap,
+  LifeBuoy, Zap, Sparkles, X, TrendingDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type LogStatus = "running" | "success" | "partial" | "failed";
 
@@ -82,9 +83,21 @@ function formatRelative(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+interface AnomalyResult {
+  has_anomalies: boolean;
+  anomalies: { sync_name: string; severity: "info" | "warning" | "critical"; message: string; suggestion: string }[];
+  overall_health: "healthy" | "degraded" | "critical";
+  health_summary: string;
+}
+
+const ANOMALY_CACHE_KEY = "ai_anomaly_cache";
+const ANOMALY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [anomaly, setAnomaly] = useState<AnomalyResult | null>(null);
+  const [anomalyDismissed, setAnomalyDismissed] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -101,6 +114,30 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  // Run anomaly check once on load, with 10-min localStorage cache
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(ANOMALY_CACHE_KEY);
+      if (cached) {
+        const { ts, result } = JSON.parse(cached);
+        if (Date.now() - ts < ANOMALY_CACHE_TTL) {
+          if (result.has_anomalies) setAnomaly(result);
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+
+    fetch("/api/ai/anomaly-check", { method: "POST" })
+      .then((r) => r.json())
+      .then((result: AnomalyResult) => {
+        try {
+          localStorage.setItem(ANOMALY_CACHE_KEY, JSON.stringify({ ts: Date.now(), result }));
+        } catch { /* ignore */ }
+        if (result.has_anomalies) setAnomaly(result);
+      })
+      .catch(() => { /* silent — anomaly check is best-effort */ });
+  }, []);
 
   if (loading || !data) {
     return (
@@ -171,6 +208,54 @@ export default function DashboardPage() {
           Refresh
         </Button>
       </div>
+
+      {/* AI Anomaly Banner */}
+      {anomaly && !anomalyDismissed && (
+        <div className={cn(
+          "rounded-xl border px-4 py-3 space-y-2",
+          anomaly.overall_health === "critical" && "border-red-200 bg-red-50",
+          anomaly.overall_health === "degraded" && "border-yellow-200 bg-yellow-50",
+          anomaly.overall_health === "healthy" && "border-primary/20 bg-primary/5",
+        )}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className={cn(
+                  "text-sm font-semibold",
+                  anomaly.overall_health === "critical" && "text-red-800",
+                  anomaly.overall_health === "degraded" && "text-yellow-800",
+                  anomaly.overall_health === "healthy" && "text-primary",
+                )}>
+                  AI Health Check
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{anomaly.health_summary}</p>
+              </div>
+            </div>
+            <button onClick={() => setAnomalyDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {anomaly.anomalies.length > 0 && (
+            <div className="space-y-1.5 pl-6">
+              {anomaly.anomalies.map((a, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <TrendingDown className={cn(
+                    "h-3.5 w-3.5 shrink-0 mt-0.5",
+                    a.severity === "critical" && "text-red-600",
+                    a.severity === "warning" && "text-yellow-600",
+                    a.severity === "info" && "text-primary",
+                  )} />
+                  <div>
+                    <p className="text-xs font-medium">{a.sync_name}: {a.message}</p>
+                    <p className="text-xs text-muted-foreground">{a.suggestion}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Open ticket alert */}
       {stats.openTickets > 0 && (

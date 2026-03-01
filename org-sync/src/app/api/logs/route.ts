@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const syncId = searchParams.get("syncId");
+  const status = searchParams.get("status"); // "success" | "failed" | "partial" | "running"
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   if (syncIds.length === 0) return NextResponse.json({ logs: [], total: 0 });
 
-  const { data: logs, error, count } = await supabase
+  let query = supabase
     .from("sync_logs")
     .select(`
       id, status, records_processed, records_succeeded, records_failed,
@@ -43,11 +44,16 @@ export async function GET(request: NextRequest) {
       sync_config:sync_configs(id, name, source_object, target_object,
         source_org:connected_orgs!source_org_id(label),
         target_org:connected_orgs!target_org_id(label)
-      )
+      ),
+      sync_record_errors(id, source_record_id, error_message, error_code, retry_count, resolved)
     `, { count: "exact" })
     .in("sync_config_id", syncIds)
     .order("started_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (status) query = query.eq("status", status);
+
+  const { data: logs, error, count } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ logs, total: count ?? 0 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User, Menu } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Settings, User, Menu, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -49,21 +50,30 @@ export function PortalHeader({
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      <div className="flex items-center gap-4">
+    <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 lg:px-6">
+      <div className="flex items-center gap-3">
         {onMenuToggle && (
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuToggle}>
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+        {/* Brand — visible on mobile where sidebar is hidden */}
+        <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md gradient-bg shadow-sm shadow-primary/20">
+            <Zap className="h-3.5 w-3.5 text-white" />
+          </div>
+          <span className="text-base font-bold tracking-tight gradient-text">OrgSync</span>
+        </Link>
+        {/* Page title — visible on desktop */}
+        <div className="hidden lg:block">
+          <h1 className="text-base font-semibold tracking-tight">{title}</h1>
           {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
           )}
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -101,6 +111,7 @@ export function PortalHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

@@ -17,11 +17,11 @@ export function CTASection() {
 
             <div className="relative">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Ready to sync your orgs?
+                Stop guessing. Start knowing.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
-                Join hundreds of Salesforce teams who trust OrgSync to keep
-                their data perfectly synchronized across orgs.
+                Set up your first sync in minutes. See exactly what&apos;s moving,
+                what&apos;s failing, and why — all from one clean dashboard.
               </p>
               <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Button
@@ -30,7 +30,7 @@ export function CTASection() {
                   asChild
                 >
                   <Link href="/signup">
-                    Get Started Free
+                    Start Free — No credit card
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

@@ -12,6 +12,7 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -39,18 +40,28 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className={cn("flex h-16 items-center border-b px-4", collapsed ? "justify-center" : "gap-2")}>
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg gradient-bg">
+      {/* Brand header */}
+      <div className={cn(
+        "flex h-16 items-center border-b px-4",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
+        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg gradient-bg shadow-md shadow-primary/20">
             <Zap className="h-4 w-4 text-white" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-bold tracking-tight">OrgSync</span>
+            <span className="text-lg font-bold tracking-tight gradient-text">OrgSync</span>
           )}
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 p-3">
+        {!collapsed && (
+          <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Navigation
+          </p>
+        )}
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           const link = (
@@ -58,14 +69,14 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-primary/10 text-primary"
+                  ? "gradient-bg text-white shadow-sm shadow-primary/20"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 collapsed && "justify-center px-0"
               )}
             >
-              <item.icon className="h-4.5 w-4.5 shrink-0" />
+              <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -83,7 +94,29 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t p-3">
+      {/* Bottom: back to site + collapse */}
+      <div className="border-t p-3 space-y-1">
+        {collapsed ? (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link
+                href="/"
+                className="flex items-center justify-center rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Back to site</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>Back to site</span>
+          </Link>
+        )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

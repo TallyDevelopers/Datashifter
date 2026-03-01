@@ -15,51 +15,51 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-
 const features = [
   {
     icon: ArrowLeftRight,
-    title: "Bidirectional Sync",
+    title: "True Bidirectional Sync",
     description:
-      "Sync data one-way or both ways between any number of connected orgs. Full control over direction.",
+      "One-way or two-way — you decide. Changes in either org flow to the other without loops or duplicates.",
   },
   {
     icon: LayoutGrid,
-    title: "Visual Field Mapping",
+    title: "Visual Field Mapper",
     description:
-      "Drag-and-drop field mapper with auto-matching. Map any field to any field across objects.",
+      "See every field from both orgs side by side. Auto-match by name or map manually. What you configure is exactly what syncs.",
   },
   {
     icon: Filter,
-    title: "Smart Filters",
+    title: "Precision Filters",
     description:
-      "Only sync what matters. Build filters with conditions so only qualifying records flow through.",
+      "Only sync records that meet your conditions. Set rules on any field so only the right data moves.",
   },
   {
     icon: RotateCcw,
-    title: "One-Click Retry",
+    title: "Per-Record Retry",
     description:
-      "See exactly why a record failed. Fix it and retry individually or in bulk with a single click.",
+      "Every failed record shows the exact error. Retry one record or an entire batch — no rebuilding required.",
   },
   {
     icon: Bell,
-    title: "Event Triggers",
+    title: "Flexible Triggers",
     description:
-      "Choose what starts a sync — record creation, updates, deletions, or all of the above.",
+      "Sync on create, update, delete — or all three. You control what events move data between orgs.",
   },
   {
     icon: Shield,
-    title: "Enterprise Security",
+    title: "Secure by Design",
     description:
-      "OAuth 2.0 authentication, encrypted token storage, and SOC 2 compliant infrastructure.",
+      "OAuth 2.0 with PKCE, AES-256 encrypted token storage, and complete data isolation between accounts.",
   },
   {
     icon: Gauge,
-    title: "Real-Time Monitoring",
+    title: "Full Audit Logs",
     description:
-      "Live dashboards showing sync progress, success rates, and detailed error logs.",
+      "Every sync execution is logged. See records processed, errors encountered, timing, and status — all in one place.",
   },
   {
     icon: Users,
-    title: "Multi-Org Support",
+    title: "Unlimited Org Connections",
     description:
-      "Connect as many orgs as your plan allows. Production, Sandbox, Developer — all supported.",
+      "Production, Sandbox, Developer Edition — connect as many orgs as your plan allows with one click each.",
   },
 ];
 
@@ -72,11 +72,11 @@ export function Features() {
             Features
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-            Everything you need to keep orgs in sync
+            Everything you need. Nothing you don&apos;t.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-            Built for Salesforce admins and developers who need reliable,
-            real-time data synchronization without the complexity.
+            Built specifically for Salesforce teams who need reliable data synchronization
+            with full visibility — not a generic tool bolted together.
           </p>
         </FadeIn>
 

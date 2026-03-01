@@ -1,10 +1,13 @@
 "use client";
 
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeftRight, Plus, Trash2, Power, Loader2,
-  ChevronRight, ArrowRight, CheckCircle2, PauseCircle,
+  ChevronRight, ArrowRight, CheckCircle2, PauseCircle, Sparkles, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +17,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface ConnectedOrgRef {
   id: string;
@@ -52,11 +59,21 @@ function TriggerBadges({ sync }: { sync: SyncConfig }) {
 }
 
 export default function SyncsPage() {
+  const router = useRouter();
   const [syncs, setSyncs] = useState<SyncConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deleteSync, setDeleteSync] = useState<SyncConfig | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [nlOpen, setNlOpen] = useState(false);
+  const [nlPrompt, setNlPrompt] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlResult, setNlResult] = useState<{
+    understood: boolean;
+    summary: string;
+    clarification_needed: string | null;
+    config: Record<string, unknown> | null;
+  } | null>(null);
 
   const fetchSyncs = useCallback(async () => {
     setLoading(true);
@@ -88,6 +105,35 @@ export default function SyncsPage() {
     }
   }
 
+  async function handleNLSubmit() {
+    if (!nlPrompt.trim()) return;
+    setNlLoading(true);
+    setNlResult(null);
+    try {
+      const orgsRes = await fetch("/api/salesforce/orgs");
+      const orgsData = await orgsRes.json();
+      const res = await fetch("/api/ai/natural-language-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: nlPrompt, availableOrgs: orgsData.orgs ?? [] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNlResult(data);
+      if (data.understood && data.config) {
+        // Store config in sessionStorage and redirect to new sync page pre-filled
+        sessionStorage.setItem("nl_prefill", JSON.stringify(data.config));
+        toast.success("AI understood your request — opening the sync builder pre-filled");
+        setNlOpen(false);
+        router.push("/syncs/new?prefill=1");
+      }
+    } catch {
+      toast.error("AI failed to parse your request");
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
   async function handleDelete() {
     if (!deleteSync) return;
     setDeleting(true);
@@ -106,8 +152,15 @@ export default function SyncsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <Button
+          variant="outline"
+          className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          onClick={() => { setNlOpen(true); setNlResult(null); setNlPrompt(""); }}
+        >
+          <Sparkles className="h-4 w-4" />
+          Describe your sync with AI
+        </Button>
         <Button className="gradient-bg border-0 text-white hover:opacity-90" asChild>
           <Link href="/syncs/new">
             <Plus className="mr-2 h-4 w-4" />
@@ -204,7 +257,7 @@ export default function SyncsPage() {
                       {sync.is_active ? "Pause" : "Activate"}
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/syncs/${sync.id}`}>Edit</Link>
+                      <Link href={`/syncs/${sync.id}/edit`}>Edit</Link>
                     </Button>
                     <Button
                       variant="ghost"
@@ -221,6 +274,54 @@ export default function SyncsPage() {
           ))}
         </div>
       )}
+
+      {/* Natural Language Sync Dialog */}
+      <Dialog open={nlOpen} onOpenChange={setNlOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Describe your sync
+            </DialogTitle>
+            <DialogDescription>
+              Tell AI what you want to sync in plain English. It will build the configuration for you.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-1.5 font-medium">Examples:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• &ldquo;Sync Accounts to Contacts when a record is created, map Name to LastName&rdquo;</li>
+                <li>• &ldquo;Bidirectional sync of Opportunities between both orgs on create and update&rdquo;</li>
+                <li>• &ldquo;Copy Leads to Contacts when created, map Email to Email and Phone to Phone&rdquo;</li>
+              </ul>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Describe what you want to sync..."
+                value={nlPrompt}
+                onChange={(e) => setNlPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !nlLoading && handleNLSubmit()}
+                className="flex-1"
+                autoFocus
+              />
+              <Button
+                onClick={handleNLSubmit}
+                disabled={nlLoading || !nlPrompt.trim()}
+                className="gradient-bg border-0 text-white hover:opacity-90 shrink-0"
+              >
+                {nlLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+            {nlResult && !nlResult.understood && (
+              <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
+                <p className="text-sm font-medium text-yellow-800 mb-1">Need a bit more detail</p>
+                <p className="text-sm text-yellow-700">{nlResult.clarification_needed ?? "Could you be more specific about the objects and fields?"}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteSync} onOpenChange={(open) => !open && setDeleteSync(null)}>
         <AlertDialogContent>

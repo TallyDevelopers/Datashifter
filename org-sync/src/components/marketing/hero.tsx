@@ -105,8 +105,8 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto mt-8 max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
         >
-          Sync your Salesforce orgs{" "}
-          <span className="gradient-text">in real time</span>
+          Your Salesforce data,{" "}
+          <span className="gradient-text">always in sync</span>
         </motion.h1>
 
         <motion.p
@@ -115,8 +115,9 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Connect multiple Salesforce orgs, map fields visually, set filters,
-          and keep your data perfectly synchronized — no code required.
+          Connect any number of Salesforce orgs, map your fields visually, and keep
+          your data flowing automatically — with full visibility into every record,
+          every sync, every time.
         </motion.p>
 
         <motion.div
@@ -127,12 +128,12 @@ export function Hero() {
         >
           <Button size="lg" className="gradient-bg border-0 text-white hover:opacity-90 transition-opacity h-12 px-8 text-base" asChild>
             <Link href="/signup">
-              Start Free Trial
+              Start Free — No credit card
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-            <Link href="#demo">Watch Demo</Link>
+            <Link href="#how-it-works">See how it works</Link>
           </Button>
         </motion.div>
       </div>
