@@ -10,7 +10,7 @@ export const anthropic = new Anthropic({
  */
 export async function askClaude<T>(systemPrompt: string, userContent: string): Promise<T> {
   const response = await anthropic.messages.create({
-    model: "claude-3-5-haiku-20241022",
+    model: "claude-haiku-4-5",
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: "user", content: userContent }],

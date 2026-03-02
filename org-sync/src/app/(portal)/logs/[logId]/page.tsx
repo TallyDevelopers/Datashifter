@@ -5,7 +5,9 @@ import Link from "next/link";
 import {
   ArrowLeft, CheckCircle2, XCircle, AlertCircle, Clock,
   Loader2, RotateCcw, ArrowRight, ExternalLink, RefreshCw,
+  Sparkles, Lightbulb, Settings2, Wrench, ShieldAlert,
 } from "lucide-react";
+import { Breadcrumbs } from "@/components/portal/breadcrumbs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +45,7 @@ interface RecordError {
   retry_count: number;
   retried_at: string | null;
   resolved: boolean;
+  retry_status: "pending" | "retrying" | "resolved" | "abandoned";
 }
 
 const STATUS_CONFIG: Record<LogStatus, { label: string; icon: React.ElementType; className: string }> = {
@@ -71,6 +74,13 @@ export default function LogDetailPage({
   const [loading, setLoading] = useState(true);
   const [retryingAll, setRetryingAll] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [aiExplaining, setAiExplaining] = useState(false);
+  const [aiExplanations, setAiExplanations] = useState<{
+    id: string;
+    plain_english: string;
+    suggested_fix: string;
+    fix_type: "mapping" | "permissions" | "data" | "config" | "other";
+  }[]>([]);
 
   async function fetchDetail() {
     setLoading(true);
@@ -94,16 +104,46 @@ export default function LogDetailPage({
     try {
       const res = await fetch(`/api/logs/${logId}/retry`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success(data.message);
-      // Update local retry counts optimistically
-      setErrors((prev) =>
-        prev.map((e) => e.resolved ? e : { ...e, retry_count: e.retry_count + 1, retried_at: new Date().toISOString() })
-      );
+      if (!res.ok) throw new Error(data.error ?? "Retry failed");
+      const msg = data.resolved > 0
+        ? `${data.resolved} record${data.resolved !== 1 ? "s" : ""} resolved${data.still_failing > 0 ? `, ${data.still_failing} still failing` : ""}${data.abandoned > 0 ? `, ${data.abandoned} abandoned` : ""}`
+        : data.message ?? "Retry complete";
+      data.resolved > 0 ? toast.success(msg) : toast.error(msg);
+      // Refresh to get updated statuses
+      await fetchDetail();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Retry failed");
     } finally {
       setRetryingAll(false);
+    }
+  }
+
+  async function explainErrors() {
+    setAiExplaining(true);
+    try {
+      const res = await fetch("/api/ai/analyze-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          errors: errors.slice(0, 10).map((e) => ({
+            id: e.id,
+            error_code: e.error_code,
+            error_message: e.error_message,
+            source_record_id: e.source_record_id,
+          })),
+          syncConfigContext: {
+            sourceObject: log?.sync_config?.source_object,
+            targetObject: log?.sync_config?.target_object,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAiExplanations(data.explanations ?? []);
+    } catch {
+      toast.error("AI explanation failed");
+    } finally {
+      setAiExplaining(false);
     }
   }
 
@@ -112,15 +152,18 @@ export default function LogDetailPage({
     try {
       const res = await fetch(`/api/logs/${logId}/errors/${error.id}/retry`, { method: "POST" });
       const data = await res.json();
+      if (res.status === 422) {
+        toast.error(data.message ?? "Retry failed");
+        await fetchDetail();
+        return;
+      }
       if (!res.ok) throw new Error(data.error);
-      toast.success(`Record queued for retry`);
-      setErrors((prev) =>
-        prev.map((e) =>
-          e.id === error.id
-            ? { ...e, retry_count: e.retry_count + 1, retried_at: new Date().toISOString() }
-            : e
-        )
-      );
+      if (data.resolved > 0) {
+        toast.success("Record synced successfully");
+      } else {
+        toast.error("Retry failed — record still failing");
+      }
+      await fetchDetail();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Retry failed");
     } finally {
@@ -140,20 +183,34 @@ export default function LogDetailPage({
 
   const cfg = STATUS_CONFIG[log.status] ?? STATUS_CONFIG.failed;
   const StatusIcon = cfg.icon;
-  const unresolvedErrors = errors.filter((e) => !e.resolved);
+  const unresolvedErrors = errors.filter((e) => !e.resolved && e.retry_status !== "abandoned");
   const successRate = log.records_processed > 0
     ? Math.round((log.records_succeeded / log.records_processed) * 100)
     : 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <Breadcrumbs
+        items={[
+          { label: "Sync Logs", href: "/logs" },
+          { label: log.sync_config?.name ?? "Log Detail" },
+        ]}
+      />
+      <div className="flex items-center gap-3 flex-wrap">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/logs">
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Back to Logs
           </Link>
         </Button>
+        {log.sync_config?.id && (
+          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+            <Link href={`/syncs/${log.sync_config.id}/edit`}>
+              <Settings2 className="mr-1.5 h-4 w-4" />
+              Edit Sync Config
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Header */}
@@ -227,22 +284,36 @@ export default function LogDetailPage({
                 {unresolvedErrors.length} unresolved
               </Badge>
             </CardTitle>
-            {unresolvedErrors.length > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRetryAll}
-                disabled={retryingAll}
-                className="border-primary text-primary hover:bg-primary/5"
-              >
-                {retryingAll ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                Retry All ({unresolvedErrors.length})
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {errors.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={explainErrors}
+                  disabled={aiExplaining}
+                  className="border-primary/30 text-primary hover:bg-primary/5"
+                >
+                  {aiExplaining ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+                  Explain with AI
+                </Button>
+              )}
+              {unresolvedErrors.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRetryAll}
+                  disabled={retryingAll}
+                  className="border-primary text-primary hover:bg-primary/5"
+                >
+                  {retryingAll ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Retry All ({unresolvedErrors.length})
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <Table>
             <TableHeader>
@@ -276,6 +347,42 @@ export default function LogDetailPage({
                   </TableCell>
                   <TableCell>
                     <p className="text-sm text-destructive max-w-sm break-words">{err.error_message}</p>
+                    {(() => {
+                      const exp = aiExplanations.find((e) => e.id === err.id);
+                      if (!exp) return null;
+                      const syncId = log.sync_config?.id;
+                      const action = (() => {
+                        if (!syncId) return null;
+                        if (exp.fix_type === "mapping") return { label: "Fix field mapping", href: `/syncs/${syncId}/edit?step=6`, Icon: Wrench };
+                        if (exp.fix_type === "permissions") return { label: "Check org connection", href: "/orgs", Icon: ShieldAlert };
+                        return { label: "Edit sync config", href: `/syncs/${syncId}/edit`, Icon: ExternalLink };
+                      })();
+                      return (
+                        <div className="mt-1.5 rounded-lg border border-primary/20 bg-primary/5 p-2 space-y-1.5 max-w-sm">
+                          <div className="flex items-start gap-1.5">
+                            <Sparkles className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                            <p className="text-xs text-foreground leading-relaxed">{exp.plain_english}</p>
+                          </div>
+                          <div className="flex items-start justify-between gap-2 border-t border-primary/10 pt-1.5">
+                            <div className="flex items-start gap-1.5 min-w-0">
+                              <Lightbulb className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                <strong className="text-foreground">Fix:</strong> {exp.suggested_fix}
+                              </p>
+                            </div>
+                            {action && (
+                              <Link
+                                href={action.href}
+                                className="inline-flex shrink-0 items-center gap-1 rounded-md gradient-bg px-2.5 py-1 text-[10px] font-semibold text-white hover:opacity-90 transition-opacity whitespace-nowrap"
+                              >
+                                <action.Icon className="h-2.5 w-2.5" />
+                                {action.label}
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {err.error_code && (
@@ -296,7 +403,11 @@ export default function LogDetailPage({
                     }
                   </TableCell>
                   <TableCell>
-                    {!err.resolved && (
+                    {err.resolved ? (
+                      <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-xs">Resolved</Badge>
+                    ) : err.retry_status === "abandoned" ? (
+                      <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700 text-xs">Abandoned</Badge>
+                    ) : (
                       <Button
                         variant="ghost"
                         size="sm"

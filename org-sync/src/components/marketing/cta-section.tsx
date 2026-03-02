@@ -17,11 +17,12 @@ export function CTASection() {
 
             <div className="relative">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Stop guessing. Start knowing.
+                If you have data in two Salesforce orgs,<br className="hidden sm:block" /> OrgSync keeps them in sync.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
-                Set up your first sync in minutes. See exactly what&apos;s moving,
-                what&apos;s failing, and why — all from one clean dashboard.
+                Connect your orgs in minutes. Choose what syncs and where it goes.
+                Test before anything goes live. Watch it run. Retry anything that fails.
+                No developers. No consultants. No guessing.
               </p>
               <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Button

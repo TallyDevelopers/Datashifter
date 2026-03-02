@@ -14,6 +14,7 @@ import {
   Pencil,
   Filter,
 } from "lucide-react";
+import { Breadcrumbs } from "@/components/portal/breadcrumbs";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,13 @@ export default function ObjectBrowserPage({
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Connected Orgs", href: "/orgs" },
+          { label: orgLabel || "Org" },
+          { label: "Objects" },
+        ]}
+      />
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/orgs">

@@ -18,8 +18,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
+  { href: "/#how-it-works", label: "How It Works" },
   { href: "/#features", label: "Features" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/docs", label: "Docs" },
   { href: "/about", label: "About" },
 ];
 
@@ -121,9 +123,9 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/orgs">
+                      <Link href="/settings">
                         <User className="mr-2 h-4 w-4" />
-                        My Account
+                        Account Settings
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

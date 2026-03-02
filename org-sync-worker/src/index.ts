@@ -1,5 +1,5 @@
 import * as http from "http";
-import { fetchActiveSyncConfigs, runSyncConfig } from "./runner.js";
+import { fetchActiveSyncConfigs, runSyncConfig, runAutomaticRetries } from "./runner.js";
 
 const INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_MS ?? "120000", 10); // default 2 min
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
@@ -56,6 +56,14 @@ async function runSyncCycle() {
           console.error(`[scheduler] Uncaught error in sync "${config.name}":`, err);
         }
       }
+    }
+
+    // Run automatic retries for any previously failed records
+    // This happens after the main sync cycle so it doesn't delay normal syncs
+    try {
+      await runAutomaticRetries();
+    } catch (err) {
+      console.error("[scheduler] Auto-retry cycle failed:", err);
     }
   } catch (err) {
     console.error("[scheduler] Failed to fetch sync configs:", err);

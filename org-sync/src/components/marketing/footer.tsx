@@ -6,35 +6,33 @@ const footerSections = [
     title: "Product",
     links: [
       { label: "Features", href: "/#features" },
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "AI Features", href: "/#ai" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Security", href: "#" },
-      { label: "Changelog", href: "#" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "/about" },
-      { label: "Careers", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Contact", href: "/about#contact" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "API Reference", href: "#" },
-      { label: "Status", href: "#" },
-      { label: "Support", href: "#" },
+      { label: "Documentation", href: "/docs" },
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/about#contact" },
+    ],
+  },
+  {
+    title: "Account",
+    links: [
+      { label: "Log In", href: "/login" },
+      { label: "Get Started Free", href: "/signup" },
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Support", href: "/support" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
-      { label: "Cookie Policy", href: "#" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
     ],
   },
 ];
@@ -52,8 +50,7 @@ export function Footer() {
               <span className="text-lg font-bold tracking-tight">OrgSync</span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Real-time Salesforce org synchronization. Connect, map, and sync
-              your data seamlessly.
+              Bidirectional Salesforce org synchronization. Connect two orgs, map fields visually, and keep your data in sync — automatically, every 2 minutes.
             </p>
           </div>
           {footerSections.map((section) => (

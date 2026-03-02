@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Settings,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,6 +29,8 @@ const navItems = [
   { href: "/syncs", label: "Sync Configs", icon: ArrowLeftRight },
   { href: "/logs", label: "Sync Logs", icon: ScrollText },
   { href: "/support", label: "Support", icon: LifeBuoy },
+  { href: "/help", label: "Help & Docs", icon: BookOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

@@ -16,31 +16,52 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "OrgSync — Real-Time Salesforce Org Synchronization",
+    default: "OrgSync — Bidirectional Salesforce Org Sync, No Code Required",
     template: "%s | OrgSync",
   },
   description:
-    "Connect multiple Salesforce orgs, map fields visually, set filters, and keep your data perfectly synchronized in real time. No code required.",
+    "OrgSync connects two or more Salesforce orgs and syncs data between them automatically — bidirectionally, every 2 minutes, with AI-powered field mapping and built-in retry logic. No code, no Connected App setup.",
   keywords: [
-    "Salesforce",
-    "org sync",
-    "data synchronization",
-    "Salesforce integration",
-    "field mapping",
-    "real-time sync",
+    "Salesforce org sync",
+    "sync two Salesforce orgs",
+    "bidirectional Salesforce sync",
+    "Salesforce data synchronization",
+    "Salesforce integration no code",
+    "connect multiple Salesforce orgs",
+    "Salesforce field mapping tool",
+    "Salesforce cross org data",
+    "Salesforce sandbox to production sync",
+    "real-time Salesforce sync",
+    "Salesforce AppExchange sync tool",
   ],
   openGraph: {
-    title: "OrgSync — Real-Time Salesforce Org Synchronization",
+    title: "OrgSync — Sync Data Between Salesforce Orgs, Automatically",
     description:
-      "Connect multiple Salesforce orgs, map fields visually, set filters, and keep your data perfectly synchronized in real time.",
+      "Connect two Salesforce orgs, map fields visually, set filters, and sync data bidirectionally every 2 minutes. No code. No Connected App. AI-powered error detection.",
     type: "website",
     url: "https://orgsync.io",
+    siteName: "OrgSync",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OrgSync — Real-Time Salesforce Org Synchronization",
+    title: "OrgSync — Bidirectional Salesforce Org Sync",
     description:
-      "Connect multiple Salesforce orgs and keep your data perfectly synchronized in real time.",
+      "Connect two Salesforce orgs and keep their data in sync automatically. Bidirectional, no-code, AI-powered.",
+    creator: "@orgsyncio",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "https://orgsync.io",
   },
 };
 
@@ -50,9 +71,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <TooltipProvider>
           {children}

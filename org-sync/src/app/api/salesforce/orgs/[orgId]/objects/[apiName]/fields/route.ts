@@ -65,7 +65,25 @@ export async function GET(
       .order("label", { ascending: true });
 
     if (cachedFields && cachedFields.length > 0) {
-      return NextResponse.json({ fields: cachedFields, fromCache: true });
+      // Cached fields don't have picklist values — fetch them live from Salesforce
+      // so filter dropdowns work, but keep the fast path for everything else.
+      try {
+        const { accessToken, instanceUrl } = await getValidAccessToken(orgId);
+        const detail = await describeSObject(accessToken, instanceUrl, apiName);
+        const picklistMap = new Map(
+          detail.fields
+            .filter((f) => f.type === "picklist" || f.type === "multipicklist")
+            .map((f) => [f.name, (f.picklistValues ?? []).filter((v: { active: boolean }) => v.active).map((v: { value: string; label: string }) => ({ value: v.value, label: v.label }))])
+        );
+        const enriched = cachedFields.map((f) => ({
+          ...f,
+          picklist_values: picklistMap.get(f.api_name) ?? [],
+        }));
+        return NextResponse.json({ fields: enriched, fromCache: true });
+      } catch {
+        // If live picklist fetch fails, return cached fields without picklist values
+        return NextResponse.json({ fields: cachedFields, fromCache: true });
+      }
     }
   }
 
@@ -74,7 +92,7 @@ export async function GET(
     const { accessToken, instanceUrl } = await getValidAccessToken(orgId);
     const detail = await describeSObject(accessToken, instanceUrl, apiName);
 
-    // Upsert fields into cache
+    // Upsert fields into cache (without picklist_values — not stored in DB)
     const fieldRows = detail.fields.map((f) => ({
       org_object_id: objRecord.id,
       api_name: f.name,
@@ -106,7 +124,19 @@ export async function GET(
       .update({ last_synced_at: new Date().toISOString() })
       .eq("id", objRecord.id);
 
-    return NextResponse.json({ fields: fieldRows, fromCache: false });
+    // Return with picklist values attached (not stored in DB, returned inline)
+    const enrichedRows = fieldRows.map((row) => {
+      const sf = detail.fields.find((f) => f.name === row.api_name);
+      const picklist_values =
+        sf && (sf.type === "picklist" || sf.type === "multipicklist")
+          ? (sf.picklistValues ?? [])
+              .filter((v: { active: boolean }) => v.active)
+              .map((v: { value: string; label: string }) => ({ value: v.value, label: v.label }))
+          : [];
+      return { ...row, picklist_values };
+    });
+
+    return NextResponse.json({ fields: enrichedRows, fromCache: false });
   } catch (err) {
     console.error("fields fetch error:", err);
     return NextResponse.json(

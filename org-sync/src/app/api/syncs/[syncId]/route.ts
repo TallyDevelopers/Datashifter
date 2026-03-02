@@ -39,6 +39,7 @@ export async function GET(
       id, name, direction, is_active, created_at,
       trigger_on_create, trigger_on_update, trigger_on_delete,
       source_object, target_object, filters, field_mappings,
+      max_retries, retry_on_partial, notify_on_failure, owner_config,
       source_org_id, target_org_id,
       source_org:connected_orgs!source_org_id(id, label, is_sandbox, instance_url),
       target_org:connected_orgs!target_org_id(id, label, is_sandbox, instance_url)
@@ -63,7 +64,7 @@ export async function PATCH(
   if (error) return NextResponse.json({ error }, { status });
 
   const body = await request.json();
-  const allowed = ["name", "direction", "trigger_on_create", "trigger_on_update", "trigger_on_delete", "filters", "field_mappings"];
+  const allowed = ["name", "direction", "trigger_on_create", "trigger_on_update", "trigger_on_delete", "filters", "field_mappings", "max_retries", "retry_on_partial", "notify_on_failure", "owner_config"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];

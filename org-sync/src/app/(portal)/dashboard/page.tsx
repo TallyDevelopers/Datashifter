@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Building2, ArrowLeftRight, Activity, CheckCircle2, XCircle,
   Clock, ArrowRight, Plus, RefreshCw, Loader2, AlertCircle,
-  LifeBuoy, Zap, Sparkles, X, TrendingDown,
+  LifeBuoy, Zap, Sparkles, X, TrendingDown, BarChart3,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,63 @@ interface DashboardData {
   activeSyncs: ActiveSync[];
 }
 
+// ─── Mini sparkline: last-7-days success vs fail bars ─────────────────────────
+function ActivitySparkline({ logs }: { logs: SyncLog[] }) {
+  // Group by day (last 7 days)
+  const days: { label: string; succeeded: number; failed: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toDateString();
+    const label = i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" });
+    const dayLogs = logs.filter((l) => new Date(l.started_at).toDateString() === key);
+    days.push({
+      label,
+      succeeded: dayLogs.reduce((s, l) => s + l.records_succeeded, 0),
+      failed: dayLogs.reduce((s, l) => s + l.records_failed, 0),
+    });
+  }
+  const maxVal = Math.max(...days.map((d) => d.succeeded + d.failed), 1);
+
+  return (
+    <div className="flex items-end gap-1 h-12">
+      {days.map((day, i) => {
+        const total = day.succeeded + day.failed;
+        const successPct = total > 0 ? (day.succeeded / total) * 100 : 0;
+        const barH = Math.max(2, Math.round((total / maxVal) * 44));
+        const isToday = i === 6;
+        return (
+          <div key={day.label} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+            <div
+              className="w-full rounded-sm overflow-hidden flex flex-col justify-end"
+              style={{ height: `${barH}px` }}
+              title={`${day.label}: ${day.succeeded} ok, ${day.failed} failed`}
+            >
+              {total > 0 ? (
+                <>
+                  {day.failed > 0 && (
+                    <div
+                      className="w-full bg-red-400"
+                      style={{ height: `${Math.round(100 - successPct)}%`, minHeight: 2 }}
+                    />
+                  )}
+                  <div
+                    className={`w-full ${isToday ? "gradient-bg" : "bg-primary/40"}`}
+                    style={{ height: `${Math.round(successPct)}%`, minHeight: day.succeeded > 0 ? 2 : 0 }}
+                  />
+                </>
+              ) : (
+                <div className="w-full bg-muted rounded-sm" style={{ height: 4 }} />
+              )}
+            </div>
+            <span className="text-[9px] text-muted-foreground">{day.label.slice(0, 3)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const STATUS_CONFIG: Record<LogStatus, { label: string; icon: React.ElementType; className: string }> = {
   running: { label: "Running", icon: Loader2, className: "border-blue-200 bg-blue-50 text-blue-700" },
   success: { label: "Success", icon: CheckCircle2, className: "border-green-200 bg-green-50 text-green-700" },
@@ -90,7 +147,7 @@ interface AnomalyResult {
   health_summary: string;
 }
 
-const ANOMALY_CACHE_KEY = "ai_anomaly_cache";
+const ANOMALY_CACHE_KEY = "ai_anomaly_cache_v2"; // bumped: more conservative thresholds
 const ANOMALY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export default function DashboardPage() {
@@ -324,11 +381,11 @@ export default function DashboardPage() {
               <div className="divide-y">
                 {recentLogs.map((log) => (
                   <Link key={log.id} href={`/logs/${log.id}`}>
-                    <div className="flex items-center justify-between gap-4 py-3 hover:bg-muted/40 -mx-2 px-2 rounded transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between gap-4 py-3 hover:bg-muted/40 -mx-2 px-2 rounded transition-colors cursor-pointer group">
                       <div className="flex items-center gap-3 min-w-0">
                         <StatusBadge status={log.status} />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{log.sync_config?.name}</p>
+                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{log.sync_config?.name}</p>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                             <span className="truncate">{log.sync_config?.source_org?.label}</span>
                             <ArrowRight className="h-2.5 w-2.5 shrink-0" />
@@ -340,6 +397,9 @@ export default function DashboardPage() {
                         <p className="text-sm tabular-nums">
                           <span className="text-green-600">{log.records_succeeded}</span>
                           <span className="text-muted-foreground">/{log.records_processed}</span>
+                          {log.records_failed > 0 && (
+                            <span className="text-red-500 ml-1">({log.records_failed} failed)</span>
+                          )}
                         </p>
                         <p className="text-xs text-muted-foreground">{formatRelative(log.started_at)}</p>
                       </div>
@@ -353,6 +413,31 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* 7-day activity sparkline */}
+          {hasActivity && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Last 7 Days
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ActivitySparkline logs={recentLogs} />
+                <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 rounded-sm bg-primary/40" />
+                    <span>Succeeded</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 rounded-sm bg-red-400" />
+                    <span>Failed</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Active Syncs health strip */}
           {activeSyncs.length > 0 && (
             <Card>
@@ -366,7 +451,7 @@ export default function DashboardPage() {
                 {activeSyncs.slice(0, 4).map((sync) => (
                   <Link key={sync.id} href="/syncs">
                     <div className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                      <div className="h-2 w-2 rounded-full bg-green-500 shrink-0 animate-pulse" />
                       <div className="min-w-0">
                         <p className="text-xs font-medium truncate">{sync.name}</p>
                         <p className="text-[11px] text-muted-foreground font-mono truncate">

@@ -2,96 +2,119 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Loader2, ChevronRight, LifeBuoy } from "lucide-react";
+import {
+  LifeBuoy, Search, X, Loader2, RefreshCw, ChevronRight, AlertTriangle, Filter,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
-type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
-
-interface AdminTicket {
+interface Ticket {
   id: string;
   subject: string;
-  status: TicketStatus;
+  status: string;
   priority: string;
   created_at: string;
   updated_at: string;
-  customer: { id: string; name: string; email: string };
+  customer: { id: string; name: string; email: string } | null;
 }
 
-const STATUS_CONFIG: Record<TicketStatus, { label: string; className: string }> = {
-  open: { label: "Open", className: "border-blue-200 bg-blue-50 text-blue-700" },
-  in_progress: { label: "In Progress", className: "border-yellow-200 bg-yellow-50 text-yellow-700" },
-  resolved: { label: "Resolved", className: "border-green-200 bg-green-50 text-green-700" },
-  closed: { label: "Closed", className: "border-muted bg-muted text-muted-foreground" },
+const STATUS_COLORS: Record<string, string> = {
+  open:        "bg-blue-50 text-blue-700 border-blue-200",
+  in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  resolved:    "bg-green-50 text-green-700 border-green-200",
+  closed:      "bg-slate-50 text-slate-600 border-slate-200",
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: "text-muted-foreground",
-  normal: "text-foreground",
-  high: "text-orange-600 font-semibold",
-  urgent: "text-red-600 font-semibold",
+  low:    "bg-slate-50 text-slate-600 border-slate-200",
+  normal: "bg-blue-50 text-blue-600 border-blue-200",
+  high:   "bg-orange-50 text-orange-700 border-orange-200",
+  urgent: "bg-red-50 text-red-700 border-red-200",
 };
 
+const STATUS_OPTIONS = ["all", "open", "in_progress", "resolved", "closed"];
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function AdminTicketsPage() {
-  const [tickets, setTickets] = useState<AdminTicket[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [total, setTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("open");
 
-  const fetchTickets = useCallback(async (q = "", s = "") => {
+  const fetchTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "50" });
-      if (q) params.set("search", q);
-      if (s) params.set("status", s);
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("limit", "100");
       const res = await fetch(`/api/admin/tickets?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setTickets(data.tickets ?? []);
       setTotal(data.total ?? 0);
-    } catch { toast.error("Failed to load tickets"); }
-    finally { setLoading(false); }
-  }, []);
+    } catch {
+      toast.error("Failed to load tickets");
+    } finally {
+      setLoading(false);
+    }
+  }, [search, statusFilter]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
-  useEffect(() => {
-    const t = setTimeout(() => fetchTickets(search, statusFilter), 300);
-    return () => clearTimeout(t);
-  }, [search, statusFilter, fetchTickets]);
-
-  const statusOptions = ["", "open", "in_progress", "resolved", "closed"];
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Support Tickets</h1>
-        <p className="text-sm text-muted-foreground mt-1">{total} total ticket{total !== 1 ? "s" : ""}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Support Queue</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{total.toLocaleString()} ticket{total !== 1 ? "s" : ""}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading}>
+          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", loading && "animate-spin")} />
+          Refresh
+        </Button>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search by subject..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by subject…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 w-56 rounded-md border bg-background pl-8 pr-7 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        <div className="flex gap-1.5">
-          {statusOptions.map((s) => (
-            <Button
-              key={s || "all"}
-              variant={statusFilter === s ? "default" : "outline"}
-              size="sm"
+
+        {/* Status tabs */}
+        <div className="flex items-center gap-1 rounded-lg border bg-muted/30 p-0.5">
+          {STATUS_OPTIONS.map((s) => (
+            <button
+              key={s}
               onClick={() => setStatusFilter(s)}
-              className={statusFilter === s ? "gradient-bg border-0 text-white" : ""}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-all",
+                statusFilter === s
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              {s ? s.replace("_", " ") : "All"}
-            </Button>
+              {s.replace("_", " ")}
+            </button>
           ))}
         </div>
       </div>
@@ -102,50 +125,65 @@ export default function AdminTicketsPage() {
         </div>
       ) : tickets.length === 0 ? (
         <Card>
-          <div className="flex flex-col items-center justify-center py-16 text-center">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <LifeBuoy className="h-10 w-10 text-muted-foreground/30" />
-            <p className="mt-3 font-medium">No tickets found</p>
-          </div>
+            <p className="mt-3 font-semibold">No tickets</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {statusFilter === "open" ? "All caught up — no open tickets." : "No tickets match this filter."}
+            </p>
+          </CardContent>
         </Card>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subject</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="w-8" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tickets.map((ticket) => {
-                const statusCfg = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.open;
-                return (
-                  <TableRow key={ticket.id} className="group cursor-pointer hover:bg-muted/50">
-                    <TableCell className="font-medium text-sm max-w-xs truncate">{ticket.subject}</TableCell>
-                    <TableCell>
+        <div className="rounded-xl border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 border-b">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Subject</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Customer</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Priority</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">Updated</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {tickets.map((ticket) => (
+                <tr key={ticket.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <p className="font-medium truncate max-w-xs">{ticket.subject}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    {ticket.customer ? (
                       <div>
-                        <p className="text-sm">{ticket.customer?.name}</p>
-                        <p className="text-xs text-muted-foreground">{ticket.customer?.email}</p>
+                        <p className="text-sm font-medium">{ticket.customer.name}</p>
+                        <p className="text-xs text-muted-foreground">{ticket.customer.email}</p>
                       </div>
-                    </TableCell>
-                    <TableCell><Badge variant="outline" className={statusCfg.className}>{statusCfg.label}</Badge></TableCell>
-                    <TableCell className={`text-sm capitalize ${PRIORITY_COLORS[ticket.priority] ?? ""}`}>{ticket.priority}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{new Date(ticket.updated_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Link href={`/admin/tickets/${ticket.id}`} className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Unknown</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={cn("text-xs capitalize", STATUS_COLORS[ticket.status])}>
+                      {ticket.status.replace("_", " ")}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={cn("text-xs capitalize", PRIORITY_COLORS[ticket.priority])}>
+                      {ticket.priority === "urgent" && <AlertTriangle className="mr-1 h-3 w-3" />}
+                      {ticket.priority}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(ticket.updated_at)}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/admin/tickets/${ticket.id}`} className="flex items-center gap-0.5 text-xs text-primary hover:underline font-medium">
+                      Reply <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { executeRetry, getSyncConfigForRetry } from "@/lib/retry/engine";
 
 /**
  * POST /api/logs/[logId]/retry
  * Bulk-retries all unresolved errors for a sync log.
- * In the current implementation this marks them as queued for retry
- * and updates retry_count. The actual re-execution happens in the sync engine (Phase 9).
- * For now it returns a "queued" response so the UI can show feedback.
+ * Actually re-executes the Salesforce upsert for each failed record.
  */
 export async function POST(
   _request: NextRequest,
@@ -24,36 +23,41 @@ export async function POST(
     .single();
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-  // Verify ownership via sync_config
+  // Verify log ownership and get the sync_config_id
   const { data: log } = await supabase
     .from("sync_logs")
-    .select("id, sync_config:sync_configs!inner(customer_id)")
+    .select("id, sync_config_id, sync_config:sync_configs!inner(customer_id)")
     .eq("id", logId)
     .single();
 
-  const syncConfig = (log?.sync_config as unknown as { customer_id: string } | null);
+  const syncConfig = log?.sync_config as unknown as { customer_id: string } | null;
   if (!log || !syncConfig || syncConfig.customer_id !== customer.id) {
     return NextResponse.json({ error: "Log not found" }, { status: 404 });
   }
 
-  const { data: errors, error: fetchError } = await supabase
+  // Fetch all unresolved errors for this log
+  const { data: errors } = await supabase
     .from("sync_record_errors")
-    .select("id, retry_count")
+    .select("id")
     .eq("sync_log_id", logId)
     .eq("resolved", false);
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
   if (!errors || errors.length === 0) {
-    return NextResponse.json({ message: "No unresolved errors to retry", queued: 0 });
+    return NextResponse.json({ message: "No unresolved errors to retry", attempted: 0 });
   }
 
-  // Increment retry counts and record the retry timestamp
-  const now = new Date().toISOString();
-  await supabase
-    .from("sync_record_errors")
-    .update({ retry_count: (errors[0]?.retry_count ?? 0) + 1, retried_at: now })
-    .eq("sync_log_id", logId)
-    .eq("resolved", false);
+  // Load the full sync config (with decryptable tokens)
+  const config = await getSyncConfigForRetry(
+    log.sync_config_id as string,
+    customer.id
+  );
+  if (!config) return NextResponse.json({ error: "Sync config not found" }, { status: 404 });
 
-  return NextResponse.json({ queued: errors.length, message: `${errors.length} record${errors.length !== 1 ? "s" : ""} queued for retry` });
+  const errorIds = errors.map((e) => (e as { id: string }).id);
+  const result = await executeRetry(config, errorIds);
+
+  return NextResponse.json({
+    message: `Retry complete — ${result.resolved} resolved, ${result.still_failing} still failing${result.abandoned > 0 ? `, ${result.abandoned} abandoned` : ""}`,
+    ...result,
+  });
 }

@@ -60,19 +60,25 @@ export async function finalizeSyncLog(
 
 /**
  * Writes individual record errors to sync_record_errors.
+ * Includes sync_config_id and direction so the retry engine can re-run without joining.
  */
 export async function writeRecordErrors(
   logId: string,
-  errors: RunResult["errors"]
+  errors: RunResult["errors"],
+  syncConfigId?: string,
+  direction: "forward" | "reverse" = "forward"
 ): Promise<void> {
   if (errors.length === 0) return;
 
   await db().from("sync_record_errors").insert(
     errors.map((e) => ({
       sync_log_id: logId,
+      sync_config_id: syncConfigId ?? null,
       source_record_id: e.sourceRecordId,
       error_message: e.errorMessage,
       error_code: e.errorCode,
+      direction,
+      retry_status: "pending",
     }))
   );
 }

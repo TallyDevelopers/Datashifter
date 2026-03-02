@@ -53,14 +53,38 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { plan_tier } = body as { plan_tier: string };
-  const validTiers = ["free", "starter", "professional", "enterprise"];
-  if (!validTiers.includes(plan_tier)) {
-    return NextResponse.json({ error: "Invalid plan tier" }, { status: 400 });
+  const { plan_tier, is_suspended } = body as { plan_tier?: string; is_suspended?: boolean };
+  const db = createAdminClient();
+
+  const updates: Record<string, unknown> = {};
+
+  if (plan_tier !== undefined) {
+    const validTiers = ["free", "starter", "professional", "enterprise"];
+    if (!validTiers.includes(plan_tier)) {
+      return NextResponse.json({ error: "Invalid plan tier" }, { status: 400 });
+    }
+    updates.plan_tier = plan_tier;
+
+    // Sync log_retention_days from plan_features
+    const { data: pf } = await db
+      .from("plan_features")
+      .select("log_retention_days")
+      .eq("plan_tier", plan_tier)
+      .single();
+    if (pf?.log_retention_days) {
+      updates.log_retention_days = pf.log_retention_days;
+    }
   }
 
-  const db = createAdminClient();
-  const { error } = await db.from("customers").update({ plan_tier }).eq("id", customerId);
+  if (is_suspended !== undefined) {
+    updates.is_suspended = is_suspended;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const { error } = await db.from("customers").update(updates).eq("id", customerId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, updates });
 }

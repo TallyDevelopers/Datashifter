@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, FlaskConical, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,23 +38,30 @@ function FloatingDashboard() {
               </div>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            <DashboardCard label="Connected Orgs" value="4" color="primary" />
+          <div className="mt-1 mb-4 text-left">
+            <p className="text-xs font-medium text-muted-foreground">Acme Corp — Salesforce Sync Dashboard</p>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            <DashboardCard label="Orgs Connected" value="4" color="primary" />
             <DashboardCard label="Active Syncs" value="12" color="chart-2" />
             <DashboardCard label="Records Synced" value="48.2K" color="chart-3" />
+            <DashboardCard label="Success Rate" value="99.8%" color="chart-4" />
           </div>
+          {/* Active sync row */}
           <div className="mt-4 rounded-lg border p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md gradient-bg" />
+                <div className="h-8 w-8 rounded-md gradient-bg flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">SF</span>
+                </div>
                 <div>
-                  <div className="text-sm font-medium">Account → Account</div>
-                  <div className="text-xs text-muted-foreground">Production → Sandbox</div>
+                  <div className="text-sm font-medium">Accounts syncing: Production → Sandbox</div>
+                  <div className="text-xs text-muted-foreground">New or updated accounts copy over automatically · 6 fields mapped</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs font-medium text-green-600">Syncing</span>
+                <span className="text-xs font-medium text-green-600">Live</span>
               </div>
             </div>
             <div className="mt-3 h-2 w-full rounded-full bg-muted overflow-hidden">
@@ -65,6 +72,25 @@ function FloatingDashboard() {
                 transition={{ duration: 2, delay: 1, ease: "easeOut" }}
               />
             </div>
+          </div>
+          {/* AI verdict strip */}
+          <div className="mt-3 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50/60 px-4 py-2.5">
+            <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-semibold text-green-800">Pre-flight passed — </span>
+              <span className="text-xs text-green-700">All 12 fields validated. 1 sample record simulated. Nothing written.</span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Sparkles className="h-3 w-3 text-primary" />
+              <span className="text-[10px] font-medium text-primary">AI</span>
+            </div>
+          </div>
+          {/* AI anomaly row */}
+          <div className="mt-2 flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50/60 px-4 py-2.5">
+            <Sparkles className="h-4 w-4 text-yellow-600 shrink-0" />
+            <span className="text-xs text-yellow-800">
+              <strong>AI detected:</strong> &ldquo;Opportunity Sync&rdquo; moved 0 records in the last 48h — was averaging 200/day.
+            </span>
           </div>
         </div>
       </div>
@@ -95,7 +121,7 @@ export function Hero() {
         >
           <Badge variant="secondary" className="gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            Now in Beta — Start syncing for free
+            Now in Beta — Start syncing free
           </Badge>
         </motion.div>
 
@@ -105,8 +131,8 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto mt-8 max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
         >
-          Your Salesforce data,{" "}
-          <span className="gradient-text">always in sync</span>
+          Keep your Salesforce orgs{" "}
+          <span className="gradient-text">in sync — automatically</span>
         </motion.h1>
 
         <motion.p
@@ -115,9 +141,9 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Connect any number of Salesforce orgs, map your fields visually, and keep
-          your data flowing automatically — with full visibility into every record,
-          every sync, every time.
+          OrgSync connects two or more Salesforce orgs and automatically copies records between them — 
+          whenever something is created, updated, or deleted. You choose what syncs, where it goes, 
+          and who owns it. We handle everything else.
         </motion.p>
 
         <motion.div
@@ -133,8 +159,29 @@ export function Hero() {
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
-            <Link href="#how-it-works">See how it works</Link>
+            <Link href="#product">See it in action</Link>
           </Button>
+        </motion.div>
+
+        {/* Identity pill row */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground"
+        >
+          {[
+            "Connects any two Salesforce orgs",
+            "No code, no setup, no admin required",
+            "Works with Production & Sandbox",
+            "Records sync every 2 minutes",
+            "Full error visibility & retry",
+          ].map((pill) => (
+            <span key={pill} className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1">
+              <span className="h-1 w-1 rounded-full bg-primary/60" />
+              {pill}
+            </span>
+          ))}
         </motion.div>
       </div>
 

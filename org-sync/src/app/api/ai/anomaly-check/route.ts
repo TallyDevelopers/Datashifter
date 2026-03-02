@@ -14,7 +14,7 @@ interface AnomalyResult {
   health_summary: string;
 }
 
-const SYSTEM_PROMPT = `You are a Salesforce sync monitoring expert. Analyze sync statistics and identify anomalies or concerning patterns.
+const SYSTEM_PROMPT = `You are a Salesforce sync monitoring expert. Analyze sync statistics and identify genuine anomalies — but be conservative and context-aware.
 
 Return valid JSON matching this exact shape:
 {
@@ -31,14 +31,23 @@ Return valid JSON matching this exact shape:
   "health_summary": "1 sentence overall system health summary"
 }
 
-Look for:
-- Syncs with 0 records processed when they usually process records (possible connection issue)
-- Success rate drops of more than 10% compared to average
-- Syncs that haven't run recently despite being active
-- Very high failure rates (>20% of records failing)
-- No syncs running at all when configs are active
-If everything looks normal, return has_anomalies=false with an empty anomalies array.
-Keep messages short and non-technical. Return only valid JSON.`;
+IMPORTANT RULES — read these carefully before flagging anything:
+
+1. Low record volume is NOT an anomaly. Salesforce orgs with few records, test/sandbox orgs, or orgs that simply haven't had activity will show zero or very low processed counts. This is completely normal. Do NOT flag it.
+
+2. Only flag "0 records processed" as an anomaly if the sync has historically processed significant volumes (100+ records per week) AND has recently dropped to zero. If total_processed is low across the whole period, assume it's a quiet org or test environment.
+
+3. Only flag failure rates if total_processed is at least 50 records AND the failure rate exceeds 25%. A failure rate on 3 records out of 5 is not statistically meaningful.
+
+4. Only flag "sync hasn't run" if the sync is active AND last_run is more than 30 minutes ago (the sync interval is 2 minutes, so missing a few runs is normal during maintenance).
+
+5. Never flag stats that have an obvious innocent explanation (new account, test org, quiet period, weekend, no source data changed).
+
+6. When in doubt, return has_anomalies=false. It is much better to stay silent than to produce false alarms that confuse customers.
+
+7. overall_health should be "healthy" unless there is a clear, high-confidence problem with significant volume.
+
+Keep messages short, plain English, non-technical. Return only valid JSON.`;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -110,8 +119,28 @@ export async function POST(request: NextRequest) {
 
   const statsArray = Array.from(statsBySyncId.values());
 
+  // Hard minimum: if the account is brand new, test-only, or genuinely quiet,
+  // don't run the AI check — there's nothing meaningful to analyze yet.
+  const totalProcessedAllTime = statsArray.reduce((s, x) => s + x.total_processed, 0);
+  const totalFailedAllTime = statsArray.reduce((s, x) => s + x.total_failed, 0);
+  const totalRunsAllTime = statsArray.reduce((s, x) => s + x.total_runs, 0);
+
+  // Skip if: fewer than 50 total records processed, OR fewer than 10 runs total
+  // These numbers are too small to draw any reliable conclusions from.
+  const hasEnoughData = totalProcessedAllTime >= 50 || (totalRunsAllTime >= 10 && totalFailedAllTime > 5);
+
+  if (!hasEnoughData) {
+    return NextResponse.json({
+      has_anomalies: false,
+      anomalies: [],
+      overall_health: "healthy",
+      health_summary: "Not enough sync history yet to detect patterns. Everything looks fine.",
+    });
+  }
+
   const userContent = `
 Sync statistics for the last 7 days:
+Account context: ${totalProcessedAllTime} total records processed across all syncs this week. ${totalRunsAllTime} total sync runs.
 
 ${statsArray.map((s) => `Sync: "${s.name}"
   Active: ${s.is_active}

@@ -58,6 +58,12 @@ export async function getValidAccessToken(org: ConnectedOrg): Promise<{ accessTo
 
   if (!res.ok) {
     const err = await res.text();
+    // Mark the org as error so the scheduler stops hammering it
+    console.error(`[salesforce] Token refresh failed for org ${org.label} (${org.id}) — marking as error`);
+    await db()
+      .from("connected_orgs")
+      .update({ status: "error", status_message: `Token refresh failed: ${err.slice(0, 300)}` })
+      .eq("id", org.id);
     throw new Error(`Token refresh failed for org ${org.label}: ${err}`);
   }
 

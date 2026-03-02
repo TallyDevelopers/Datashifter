@@ -18,6 +18,32 @@ export interface FieldMapping {
   target_label?: string;
 }
 
+export type OwnerStrategy = "fixed" | "round_robin" | "passthrough";
+
+export interface OwnerUser {
+  id: string;    // Salesforce User Id (005...)
+  name: string;
+  email: string;
+}
+
+/**
+ * Determines how OwnerId is set on records written to the target org.
+ *
+ * fixed       — all records owned by target_users[0]
+ * round_robin — records rotated through target_users in order
+ * passthrough — source OwnerId copied as-is (may fail cross-org)
+ *
+ * For bidirectional syncs, reverse_strategy / reverse_users control
+ * ownership when writing back to the SOURCE org.
+ */
+export interface OwnerConfig {
+  strategy: OwnerStrategy;
+  target_users: OwnerUser[];
+  // Bidirectional reverse direction
+  reverse_strategy?: OwnerStrategy;
+  reverse_users?: OwnerUser[];
+}
+
 export interface SyncFilter {
   field: string;
   operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_null" | "is_not_null";
@@ -38,6 +64,7 @@ export interface SyncConfig {
   trigger_on_delete: boolean;
   filters: SyncFilter[];
   field_mappings: FieldMapping[];
+  owner_config: OwnerConfig | null;
   is_active: boolean;
   source_org: ConnectedOrg;
   target_org: ConnectedOrg;

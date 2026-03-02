@@ -6,6 +6,7 @@ import {
   type SalesforceEnv,
 } from "@/lib/salesforce/oauth";
 import { encrypt } from "@/lib/salesforce/crypto";
+import { checkOrgLimit } from "@/lib/plan";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
 
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${APP_URL}/orgs?error=customer_not_found`);
     }
 
-    // Check if this org is already connected
+    // Check if this org is already connected (re-auth — always allowed, no limit check)
     const { data: existing } = await supabase
       .from("connected_orgs")
       .select("id")
@@ -91,6 +92,14 @@ export async function GET(request: NextRequest) {
       const reconnectRes = NextResponse.redirect(`${APP_URL}/orgs?reconnected=true`);
       reconnectRes.cookies.delete("sf_code_verifier");
       return reconnectRes;
+    }
+
+    // New org — check plan limit before creating
+    const limitErr = await checkOrgLimit(supabase, customer.id);
+    if (limitErr) {
+      const limitRes = NextResponse.redirect(`${APP_URL}/orgs?error=${encodeURIComponent(limitErr)}`);
+      limitRes.cookies.delete("sf_code_verifier");
+      return limitRes;
     }
 
     // Store the new connection with encrypted tokens

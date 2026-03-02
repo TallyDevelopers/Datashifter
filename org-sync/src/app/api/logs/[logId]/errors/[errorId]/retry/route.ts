@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { executeRetry, getSyncConfigForRetry } from "@/lib/retry/engine";
 
 /**
  * POST /api/logs/[logId]/errors/[errorId]/retry
- * Retries a single record error. Updates retry_count and retried_at.
+ * Retries a single failed record — actually re-executes the Salesforce upsert.
  */
 export async function POST(
   _request: NextRequest,
@@ -21,35 +22,53 @@ export async function POST(
     .single();
   if (!customer) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-  // Ownership check
+  // Verify ownership via sync_config
   const { data: log } = await supabase
     .from("sync_logs")
-    .select("id, sync_config:sync_configs!inner(customer_id)")
+    .select("id, sync_config_id, sync_config:sync_configs!inner(customer_id)")
     .eq("id", logId)
     .single();
 
-  const syncConfig = (log?.sync_config as unknown as { customer_id: string } | null);
+  const syncConfig = log?.sync_config as unknown as { customer_id: string } | null;
   if (!log || !syncConfig || syncConfig.customer_id !== customer.id) {
     return NextResponse.json({ error: "Log not found" }, { status: 404 });
   }
 
-  const { data: errorRecord } = await supabase
+  // Verify the error exists and belongs to this log
+  const { data: errorRecord, error: errorFetchErr } = await supabase
     .from("sync_record_errors")
-    .select("id, retry_count, resolved")
+    .select("id, resolved, retry_count")
     .eq("id", errorId)
     .eq("sync_log_id", logId)
     .single();
 
-  if (!errorRecord) return NextResponse.json({ error: "Error record not found" }, { status: 404 });
-  if (errorRecord.resolved) return NextResponse.json({ error: "This record has already been resolved" }, { status: 400 });
+  if (errorFetchErr || !errorRecord) {
+    return NextResponse.json({ error: "Error record not found" }, { status: 404 });
+  }
+  if (errorRecord.resolved) {
+    return NextResponse.json({ error: "This record has already been resolved" }, { status: 400 });
+  }
 
-  await supabase
-    .from("sync_record_errors")
-    .update({
-      retry_count: (errorRecord.retry_count ?? 0) + 1,
-      retried_at: new Date().toISOString(),
-    })
-    .eq("id", errorId);
+  const config = await getSyncConfigForRetry(log.sync_config_id as string, customer.id);
+  if (!config) return NextResponse.json({ error: "Sync config not found" }, { status: 404 });
 
-  return NextResponse.json({ queued: 1, message: "Record queued for retry" });
+  const result = await executeRetry(config, [errorId]);
+
+  if (result.resolved > 0) {
+    return NextResponse.json({ success: true, message: "Record successfully synced", ...result });
+  }
+
+  if (result.abandoned > 0) {
+    return NextResponse.json({
+      success: false,
+      message: "Record abandoned — max retries reached. Fix the underlying issue before retrying again.",
+      ...result,
+    }, { status: 422 });
+  }
+
+  return NextResponse.json({
+    success: false,
+    message: "Retry failed — Salesforce rejected the record again. Check the error details.",
+    ...result,
+  }, { status: 422 });
 }

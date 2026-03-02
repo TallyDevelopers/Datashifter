@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Loader2, Send, XCircle, CheckCircle2, RefreshCw,
 } from "lucide-react";
+import { Breadcrumbs } from "@/components/portal/breadcrumbs";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +144,12 @@ export default function TicketDetailPage({
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
+      <Breadcrumbs
+        items={[
+          { label: "Support", href: "/support" },
+          { label: ticket.subject },
+        ]}
+      />
       {/* Back nav */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
