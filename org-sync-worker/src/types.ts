@@ -46,7 +46,7 @@ export interface OwnerConfig {
 
 export interface SyncFilter {
   field: string;
-  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "is_null" | "is_not_null";
+  operator: string; // "=" | "!=" | ">" | "<" | ">=" | "<=" | "contains" | "starts with" | "is empty" | "is not empty"
   value: string;
 }
 
@@ -82,13 +82,6 @@ export interface SyncLogRow {
   completed_at: string | null;
 }
 
-export interface RecordMapping {
-  sync_config_id: string;
-  source_org_id: string;
-  source_record_id: string;
-  target_org_id: string;
-  target_record_id: string;
-}
 
 export interface SalesforceRecord {
   Id?: string;

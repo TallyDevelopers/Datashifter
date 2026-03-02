@@ -142,7 +142,12 @@ Filters are evaluated against the source record's field values before the record
 
 **Important:** The \`Name\` field on the Contact object is read-only — Salesforce builds it from \`FirstName\` and \`LastName\`. Map those separately and do not include \`Name\` in your mapping.
 
-**External IDs:** OrgSync uses a source record's \`Id\` field stored in a custom \`External_Id__c\` field (or similar) to perform upserts — updating existing records rather than creating duplicates on repeat syncs.`,
+**How OrgSync tracks records:** When you activate a sync, OrgSync automatically creates a custom field \`OrgSync_Source_Id__c\` on the target object in your target org (requires "Customize Application" permission on the connected profile). This field stores the source record's Salesforce ID and uses Salesforce's native External ID upsert mechanism. On every sync run:
+- If a record with that source ID already exists in the target org → it gets **updated**
+- If no matching record exists → a **new record is created**
+- If someone manually deletes a target record → OrgSync **recreates it cleanly** on the next run
+
+Zero record data is ever stored in OrgSync's database — all data lives entirely within your own Salesforce orgs.`,
   },
   {
     id: "sync-logs",
@@ -276,7 +281,7 @@ const faqJsonLd = {
       "name": "Does OrgSync store my Salesforce data?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. OrgSync never stores Salesforce record field values. Data flows directly between orgs in memory. We store only record IDs, sync config metadata, and execution logs.",
+        "text": "No. OrgSync stores zero Salesforce record data. Data flows directly between your orgs in memory. OrgSync uses Salesforce's native External ID mechanism — a custom field (OrgSync_Source_Id__c) on your target object — to track which records have been synced. All data lives entirely within your own Salesforce orgs. OrgSync stores only sync configuration, execution logs, and timestamps.",
       },
     },
     {

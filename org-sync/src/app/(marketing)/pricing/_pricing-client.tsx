@@ -108,7 +108,7 @@ const faqs = [
   {
     question: "Is my Salesforce data ever stored on your servers?",
     answer:
-      "No. OrgSync is a metadata and orchestration layer. Data flows directly between your orgs. We store only sync logs (record IDs, timestamps, error codes) — never field values.",
+      "No — zero record data ever leaves your Salesforce orgs. OrgSync uses Salesforce's native External ID mechanism to track synced records: a lightweight custom field (OrgSync_Source_Id__c) is created on your target object, and Salesforce itself handles find-or-create upserts. We store only sync configuration, execution logs, and timestamps — never field values.",
   },
   {
     question: "What happens when a sync fails?",

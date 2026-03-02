@@ -10,6 +10,8 @@ import type {
 
 const SF_API_VERSION = "v59.0";
 
+export const EXTERNAL_ID_FIELD = "OrgSync_Source_Id__c";
+
 function db() {
   return createClient(
     process.env.SUPABASE_URL!,
@@ -187,6 +189,93 @@ export async function upsertRecords(
         const msg = Array.isArray(errs) && errs[0] ? errs[0].message : JSON.stringify(subRes.body);
         const code = Array.isArray(errs) && errs[0] ? errs[0].errorCode : "UNKNOWN";
         results.push({ sourceRecordId: rec.sourceRecordId, targetRecordId: null, success: false, errorMessage: msg, errorCode: code });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Upserts records into the target org using Salesforce's native External ID mechanism.
+ *
+ * Each record is sent as:
+ *   PATCH /sobjects/{sobjectType}/{EXTERNAL_ID_FIELD}/{sourceRecordId}
+ *
+ * Salesforce will:
+ *   - UPDATE the record if one already has OrgSync_Source_Id__c = sourceRecordId
+ *   - INSERT a new record (and set OrgSync_Source_Id__c) if none exists
+ *
+ * This completely replaces the sync_record_mappings lookup table — no Supabase
+ * roundtrip needed, no storage growth, and handles "target record manually deleted"
+ * gracefully (Salesforce recreates it as a new insert).
+ *
+ * Uses the Composite API in batches of 25 for efficiency.
+ */
+export async function upsertByExternalId(
+  org: ConnectedOrg,
+  sobjectType: string,
+  records: Array<{
+    sourceRecordId: string;
+    payload: Record<string, unknown>;
+  }>
+): Promise<Array<{
+  sourceRecordId: string;
+  success: boolean;
+  errorMessage?: string;
+  errorCode?: string;
+}>> {
+  const { accessToken, instanceUrl } = await getValidAccessToken(org);
+  const results: Array<{ sourceRecordId: string; success: boolean; errorMessage?: string; errorCode?: string }> = [];
+
+  const BATCH_SIZE = 25;
+
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE);
+
+    const subrequests: SalesforceCompositeSubrequest[] = batch.map((rec, idx) => ({
+      method: "PATCH",
+      // Salesforce upsert-by-external-ID endpoint:
+      // PATCH /sobjects/{Type}/{ExternalIdField}/{ExternalIdValue}
+      // If a record with that external ID exists → update it
+      // If not → insert a new one with that external ID set
+      url: `/services/data/${SF_API_VERSION}/sobjects/${sobjectType}/${EXTERNAL_ID_FIELD}/${encodeURIComponent(rec.sourceRecordId)}`,
+      referenceId: `rec_${idx}`,
+      body: {
+        ...rec.payload,
+        // Always stamp the external ID field so it's set on inserts
+        [EXTERNAL_ID_FIELD]: rec.sourceRecordId,
+      },
+    }));
+
+    const res = await fetch(`${instanceUrl}/services/data/${SF_API_VERSION}/composite`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ allOrNone: false, compositeRequest: subrequests }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      for (const rec of batch) {
+        results.push({ sourceRecordId: rec.sourceRecordId, success: false, errorMessage: `Composite API error: ${err}`, errorCode: "COMPOSITE_FAILED" });
+      }
+      continue;
+    }
+
+    const compositeData = await res.json() as SalesforceCompositeResponse;
+
+    for (let j = 0; j < batch.length; j++) {
+      const subRes = compositeData.compositeResponse[j];
+      const rec = batch[j];
+
+      // 200 = updated, 201 = inserted, 204 = updated (no body)
+      if (subRes.httpStatusCode === 200 || subRes.httpStatusCode === 201 || subRes.httpStatusCode === 204) {
+        results.push({ sourceRecordId: rec.sourceRecordId, success: true });
+      } else {
+        const errs = subRes.body as Array<{ message: string; errorCode: string }> | null;
+        const msg  = Array.isArray(errs) && errs[0] ? errs[0].message : JSON.stringify(subRes.body);
+        const code = Array.isArray(errs) && errs[0] ? errs[0].errorCode : "UNKNOWN";
+        results.push({ sourceRecordId: rec.sourceRecordId, success: false, errorMessage: msg, errorCode: code });
       }
     }
   }

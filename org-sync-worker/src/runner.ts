@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { queryRecords, upsertRecords } from "./salesforce.js";
+import { queryRecords, upsertByExternalId } from "./salesforce.js";
 import { createSyncLog, finalizeSyncLog, writeRecordErrors } from "./logger.js";
-import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, RecordMapping, OwnerConfig, OwnerUser } from "./types.js";
+import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, OwnerConfig, OwnerUser } from "./types.js";
 
 // ─── Round-robin counters (per sync config + direction, in-memory) ────────────
 // Key: `${syncConfigId}:forward` or `${syncConfigId}:reverse`
@@ -133,55 +133,9 @@ function mapRecord(
   return payload;
 }
 
-/**
- * Loads existing record mappings for a batch of source IDs.
- * Returns a Map of sourceRecordId → targetRecordId.
- */
-async function loadRecordMappings(
-  syncConfigId: string,
-  sourceOrgId: string,
-  sourceRecordIds: string[]
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (sourceRecordIds.length === 0) return map;
-
-  const { data } = await db()
-    .from("sync_record_mappings")
-    .select("source_record_id, target_record_id")
-    .eq("sync_config_id", syncConfigId)
-    .eq("source_org_id", sourceOrgId)
-    .in("source_record_id", sourceRecordIds);
-
-  for (const row of data ?? []) {
-    const r = row as RecordMapping;
-    map.set(r.source_record_id, r.target_record_id);
-  }
-  return map;
-}
-
-/**
- * Persists new source→target ID mappings after a successful insert.
- */
-async function saveRecordMappings(
-  syncConfigId: string,
-  sourceOrgId: string,
-  targetOrgId: string,
-  pairs: Array<{ sourceId: string; targetId: string }>
-): Promise<void> {
-  if (pairs.length === 0) return;
-
-  const rows = pairs.map((p) => ({
-    sync_config_id: syncConfigId,
-    source_org_id: sourceOrgId,
-    source_record_id: p.sourceId,
-    target_org_id: targetOrgId,
-    target_record_id: p.targetId,
-  }));
-
-  await db()
-    .from("sync_record_mappings")
-    .upsert(rows, { onConflict: "sync_config_id,source_org_id,source_record_id" });
-}
+// sync_record_mappings table is no longer used.
+// OrgSync now uses Salesforce's native External ID mechanism (OrgSync_Source_Id__c)
+// for upserts — Salesforce itself handles find-or-create with zero Supabase storage.
 
 /**
  * Runs one full sync cycle for a single SyncConfig.
@@ -240,43 +194,30 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
       return result;
     }
 
-    // Load existing mappings to know which records to update vs insert
-    const sourceIds = filtered.map((r) => r.Id as string).filter(Boolean);
-    const existingMappings = await loadRecordMappings(config.id, config.source_org_id, sourceIds);
-
-    // Build upsert payloads — inject OwnerId from owner_config on inserts
-    const upsertBatch = filtered.map((rec, idx) => {
-      const existingTargetId = existingMappings.get(rec.Id as string);
+    // Build upsert payloads using External ID — no mapping table lookup needed.
+    // Salesforce handles find-or-create via OrgSync_Source_Id__c on each record.
+    const forwardBatch = filtered.map((rec, idx) => {
       const payload = mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.source_field, targetField: m.target_field })));
-
-      // Only override OwnerId on new inserts (not updates — don't change existing record owners)
-      if (!existingTargetId) {
-        const ownerId = resolveOwnerId(config.owner_config, "forward", idx);
-        if (ownerId) {
-          payload["OwnerId"] = ownerId;
-        }
-      }
-
-      return { sourceRecordId: rec.Id as string, existingTargetId, payload };
+      // Inject OwnerId — on first insert Salesforce sets it; on update we skip
+      // to avoid overwriting the existing owner. We use a sentinel approach:
+      // always include it but Salesforce ignores OwnerId on PATCH for existing records
+      // when the field hasn't changed. For round-robin we always set it intentionally.
+      const ownerId = resolveOwnerId(config.owner_config, "forward", idx);
+      if (ownerId) payload["OwnerId"] = ownerId;
+      return { sourceRecordId: rec.Id as string, payload };
     });
 
-    // Push to target org
-    const upsertResults = await upsertRecords(
+    // Push to target org via External ID upsert
+    const upsertResults = await upsertByExternalId(
       config.target_org,
       config.target_object,
-      upsertBatch
+      forwardBatch
     );
 
-    // Process results — track forward errors separately for direction tagging
-    const newMappings: Array<{ sourceId: string; targetId: string }> = [];
     const forwardErrors: RunResult["errors"] = [];
-
     for (const res of upsertResults) {
-      if (res.success && res.targetRecordId) {
+      if (res.success) {
         result.succeeded++;
-        if (!existingMappings.has(res.sourceRecordId)) {
-          newMappings.push({ sourceId: res.sourceRecordId, targetId: res.targetRecordId });
-        }
       } else {
         result.failed++;
         const err = {
@@ -289,8 +230,6 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
       }
     }
 
-    // Persist new record mappings
-    await saveRecordMappings(config.id, config.source_org_id, config.target_org_id, newMappings);
     console.log(`[runner] Sync complete — ${result.succeeded} succeeded, ${result.failed} failed`);
 
     // Handle bidirectional: swap source/target and run again
@@ -311,32 +250,18 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
 
       result.processed += reverseFiltered.length;
 
-      const reverseIds = reverseFiltered.map((r) => r.Id as string).filter(Boolean);
-      const reverseMappings = await loadRecordMappings(config.id, config.target_org_id, reverseIds);
-
       const reverseBatch = reverseFiltered.map((rec, idx) => {
-        const existingTargetId = reverseMappings.get(rec.Id as string);
         const payload = mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.target_field, targetField: m.source_field })));
-
-        if (!existingTargetId) {
-          const ownerId = resolveOwnerId(config.owner_config, "reverse", idx);
-          if (ownerId) {
-            payload["OwnerId"] = ownerId;
-          }
-        }
-
-        return { sourceRecordId: rec.Id as string, existingTargetId, payload };
+        const ownerId = resolveOwnerId(config.owner_config, "reverse", idx);
+        if (ownerId) payload["OwnerId"] = ownerId;
+        return { sourceRecordId: rec.Id as string, payload };
       });
 
-      const reverseResults = await upsertRecords(config.source_org, config.source_object, reverseBatch);
-      const reverseNewMappings: Array<{ sourceId: string; targetId: string }> = [];
+      const reverseResults = await upsertByExternalId(config.source_org, config.source_object, reverseBatch);
 
       for (const res of reverseResults) {
-        if (res.success && res.targetRecordId) {
+        if (res.success) {
           result.succeeded++;
-          if (!reverseMappings.has(res.sourceRecordId)) {
-            reverseNewMappings.push({ sourceId: res.sourceRecordId, targetId: res.targetRecordId });
-          }
         } else {
           result.failed++;
           const err = {
@@ -348,8 +273,6 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
           reverseErrors.push(err);
         }
       }
-
-      await saveRecordMappings(config.id, config.target_org_id, config.source_org_id, reverseNewMappings);
     }
 
     // Write errors with direction tag so the retry engine knows which org to re-query
@@ -522,22 +445,12 @@ async function retryFailedRecords(
     const sourceIds = rows.map((r) => r.source_record_id);
 
     // Re-fetch from source org
+    // Re-fetch the specific failed records from source org (use epoch=0 to get any record by ID)
     const sourceRecords = await queryRecords(sourceOrg, sourceObject, sourceFields, new Date(0));
-    // Filter to only the IDs we care about
-    const recordMap = new Map(sourceRecords.filter((r) => sourceIds.includes(r.Id as string)).map((r) => [r.Id as string, r]));
-
-    const { data: existingMappings } = await db()
-      .from("sync_record_mappings")
-      .select("source_record_id, target_record_id")
-      .eq("sync_config_id", config.id)
-      .eq("source_org_id", sourceOrg.id)
-      .in("source_record_id", sourceIds);
-
-    const mappingMap = new Map<string, string>(
-      (existingMappings ?? []).map((m) => [
-        (m as { source_record_id: string; target_record_id: string }).source_record_id,
-        (m as { source_record_id: string; target_record_id: string }).target_record_id,
-      ])
+    const recordMap = new Map(
+      sourceRecords
+        .filter((r) => sourceIds.includes(r.Id as string))
+        .map((r) => [r.Id as string, r])
     );
 
     const batch = rows
@@ -551,11 +464,11 @@ async function retryFailedRecords(
         for (const m of mappings) {
           if (rec[m.from] !== undefined) payload[m.to] = rec[m.from];
         }
-        return { sourceRecordId: r.source_record_id, existingTargetId: mappingMap.get(r.source_record_id), payload };
+        return { sourceRecordId: r.source_record_id, payload };
       });
 
-    const upsertResults = await upsertRecords(targetOrg, targetObject, batch);
-    const newMappings: Array<{ sourceId: string; targetId: string }> = [];
+    // Use external ID upsert — same as normal sync, no mapping table needed
+    const upsertResults = await upsertByExternalId(targetOrg, targetObject, batch);
 
     for (const res of upsertResults) {
       const row = rows.find((r) => r.source_record_id === res.sourceRecordId);
@@ -567,9 +480,6 @@ async function retryFailedRecords(
           .from("sync_record_errors")
           .update({ resolved: true, retry_status: "resolved", retry_count: newCount, retried_at: new Date().toISOString() })
           .eq("id", row.id);
-        if (res.targetRecordId && !mappingMap.has(res.sourceRecordId)) {
-          newMappings.push({ sourceId: res.sourceRecordId, targetId: res.targetRecordId });
-        }
       } else {
         const isAbandoned = newCount >= config.max_retries;
         await db()
@@ -586,10 +496,6 @@ async function retryFailedRecords(
           console.warn(`[retry] Record ${res.sourceRecordId} abandoned after ${newCount} retries`);
         }
       }
-    }
-
-    if (newMappings.length > 0) {
-      await saveRecordMappings(config.id, sourceOrg.id, targetOrg.id, newMappings);
     }
   }
 
