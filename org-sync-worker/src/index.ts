@@ -46,7 +46,7 @@ async function runSyncCycle() {
       for (const config of configs) {
         try {
           console.log(`[scheduler] Running sync: "${config.name}" (${config.id})`);
-          const result = await runSyncConfig(config);
+          const result = await runSyncConfig(config, INTERVAL_MS);
           totalSyncsExecuted++;
           console.log(
             `[scheduler] Done: ${result.succeeded}/${result.processed} records succeeded` +

@@ -41,15 +41,20 @@ function db() {
 /**
  * Determines the "since" date for querying.
  *
- * We take the most recent completed_at from ANY finished run (success, partial,
- * or failed) — not just successful ones.  Using only "success" means a partial
- * or failed cycle resets to the 24-hour fallback and re-processes every record
- * that already went through, causing duplicates.
+ * On every run (including the very first one) we look back exactly one
+ * intervalMs window.  This means:
  *
- * First-ever run falls back to 24 hours ago so we don't blast the entire org
- * history on activation.
+ *   - First-ever run for a new sync config → only records modified in the last
+ *     2 minutes (or whatever the interval is).  No historical blast.
+ *   - Subsequent runs → the completed_at of the last finished run, which is
+ *     always approximately one interval ago.  We keep this so that if the
+ *     worker restarts mid-cycle we don't skip records that landed between the
+ *     last completed_at and now.
+ *
+ * We intentionally accept ANY terminal status (success, partial, failed) so
+ * that a failed or partial run doesn't reset the window to the beginning.
  */
-async function getLastRunDate(syncConfigId: string): Promise<Date> {
+async function getLastRunDate(syncConfigId: string, intervalMs: number): Promise<Date> {
   const { data } = await db()
     .from("sync_logs")
     .select("completed_at")
@@ -61,9 +66,10 @@ async function getLastRunDate(syncConfigId: string): Promise<Date> {
     .single();
 
   if (data?.completed_at) return new Date(data.completed_at as string);
-  // First run — look back 24 hours so we pick up recently created records
-  // without pulling the entire org history
-  return new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // No prior run — use exactly one interval window so we only pick up records
+  // that arrived since the last time the worker *would* have run.
+  return new Date(Date.now() - intervalMs);
 }
 
 /**
@@ -180,16 +186,19 @@ async function saveRecordMappings(
 /**
  * Runs one full sync cycle for a single SyncConfig.
  * Returns a RunResult with counts and errors.
+ *
+ * @param intervalMs - the scheduler's poll interval in ms.  Used as the
+ *   lookback window on the very first run so we never blast historical records.
  */
-export async function runSyncConfig(config: SyncConfig): Promise<RunResult> {
+export async function runSyncConfig(config: SyncConfig, intervalMs: number): Promise<RunResult> {
   const result: RunResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
   const logId = await createSyncLog(config.id);
 
   try {
     console.log(`[runner] Starting sync: "${config.name}" (${config.id})`);
 
-    const sinceDate = await getLastRunDate(config.id);
-    console.log(`[runner] Querying records modified since ${sinceDate.toISOString()}`);
+    const sinceDate = await getLastRunDate(config.id, intervalMs);
+    console.log(`[runner] Querying records modified since ${sinceDate.toISOString()} (window: ${intervalMs / 1000}s)`);
 
     // Extract the source fields we need from the field mappings
     const sourceFields = config.field_mappings
