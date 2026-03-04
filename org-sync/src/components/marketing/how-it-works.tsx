@@ -7,38 +7,34 @@ const steps = [
   {
     step: "01",
     icon: Link2,
-    title: "Connect your Salesforce orgs",
-    description:
-      "Click \"Connect Org,\" log in to Salesforce like you normally would, and hit Authorize. That's it. OrgSync handles everything behind the scenes — no IT ticket, no setup, no special Salesforce configuration needed.",
+    title: "Connect your orgs",
+    description: "Click \"Connect Org,\" log in to Salesforce like you normally would, and hit Authorize. No IT ticket, no setup, no special configuration.",
     highlight: null,
-    example: "Connect your Production org and your Sandbox in under 2 minutes.",
+    example: "Production and Sandbox connected in under 2 minutes.",
   },
   {
     step: "02",
     icon: MousePointerClick,
-    title: "Tell us what to sync and where",
-    description:
-      "Pick an object from one org (like Accounts or Contacts), pick where it should go in the other org, and choose which fields should copy over. You can also set rules — like \"only sync accounts in California\" or \"only when a record is created.\"",
+    title: "Pick what to sync",
+    description: "Choose your object (Accounts, Contacts, Leads…), map the fields you want to copy, and set filters — like \"only when a record is created\" or \"only in California.\"",
     highlight: null,
-    example: "\"Sync Accounts from Production to Sandbox whenever one is created or updated.\"",
+    example: "\"Sync Accounts from Production → Sandbox on create or update.\"",
   },
   {
     step: "03",
     icon: PlayCircle,
-    title: "Test it before anything goes live",
-    description:
-      "Before you turn the sync on, OrgSync runs a dry test using a real record from your org. It checks everything — permissions, field compatibility, data — and tells you if something would fail. Nothing is written to your other org during the test.",
+    title: "Test before going live",
+    description: "AI runs a dry test with a real record and tells you if anything would fail — permissions, field types, missing values. Nothing gets written during the test.",
     highlight: "Zero risk — nothing gets written",
-    example: "\"Your mapping looks good. 1 field might cause an issue — here's why.\"",
+    example: "\"1 field may cause an issue — here's why.\"",
   },
   {
     step: "04",
     icon: Eye,
-    title: "Activate and watch it run",
-    description:
-      "Turn your sync on. Records start flowing every 2 minutes. You can see every sync that ran, every record that moved, and any that failed — with a plain English explanation of what went wrong and a one-click button to retry it.",
+    title: "Activate and monitor",
+    description: "Turn it on. Records flow every 2 minutes. Every run is logged — failures explained in plain English, one-click retry on anything that didn't make it.",
     highlight: null,
-    example: "\"3 records failed. Error: field 'Rating' is required in the target org.\" → Retry All",
+    example: "\"3 records failed: 'Rating' is required in target.\" → Retry All",
   },
 ];
 

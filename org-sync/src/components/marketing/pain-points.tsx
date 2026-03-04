@@ -5,36 +5,24 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-
 
 const pains = [
   {
-    problem: "You have records in two Salesforce orgs and keeping them manually in sync is a full-time job",
-    solution: "OrgSync does it automatically. The moment a record is created or updated in one org, it copies to the other — no manual work.",
+    problem: "Keeping records in sync across two orgs is a full-time manual job",
+    solution: "OrgSync does it automatically every 2 minutes — no manual work, no scripts.",
   },
   {
-    problem: "You turn something on and have no idea if it's actually working until a customer calls you",
-    solution: "Before you go live, we test your setup using a real record. If something would fail, we tell you exactly why — before it becomes a problem.",
-  },
-  {
-    problem: "Something failed and now you have to dig through Salesforce logs to figure out what happened",
-    solution: "Every failed record shows up in your dashboard with a plain English explanation of what went wrong, and a button to try again.",
+    problem: "You go live and have no idea if it's actually working until something breaks",
+    solution: "AI dry runs test your setup with a real record before anything goes live. Every failure explained in plain English.",
   },
   {
     problem: "You needed an IT person or Salesforce admin just to connect your orgs",
-    solution: "You log in to Salesforce like normal, click Authorize, and you're connected. No IT involved. No special setup required.",
+    solution: "Click Authorize, log in to Salesforce, and you're done. No IT involved, no Connected App config.",
   },
   {
-    problem: "You sync both ways and end up with duplicate records or data going in circles",
-    solution: "OrgSync tracks every record it's moved so it knows when it's already handled something — no duplicates, no loops.",
+    problem: "Your integration tool stores your Salesforce data on their servers while it processes it",
+    solution: "OrgSync never stores your records. Data flows directly org to org — we orchestrate it, we never hold it.",
   },
   {
-    problem: "A record didn't sync and you have to rebuild the whole thing to push it through again",
-    solution: "One-click retry on any record or group of failed records. Nothing gets rebuilt — it just runs again.",
-  },
-  {
-    problem: "The sync stopped working at some point and nobody noticed for days",
-    solution: "OrgSync monitors itself. If your sync suddenly goes quiet when it usually moves hundreds of records, you'll know immediately.",
-  },
-  {
-    problem: "Other tools charge you per record, so your bill grows as your business grows",
-    solution: "Flat monthly pricing. You can sync a hundred records or ten million — the price doesn't change.",
+    problem: "Other tools charge per record — your bill explodes as you grow",
+    solution: "Flat monthly pricing. Sync a hundred records or ten million — the price doesn't change.",
   },
 ];
 
@@ -55,7 +43,7 @@ export function PainPoints() {
           </p>
         </FadeIn>
 
-        <StaggerContainer className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-4" staggerDelay={0.07}>
+        <StaggerContainer className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3" staggerDelay={0.07}>
           {pains.map((item, i) => (
             <StaggerItem key={i}>
               <div className="group relative h-full rounded-2xl border bg-card p-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1">

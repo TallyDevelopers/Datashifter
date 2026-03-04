@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   const {
     name, source_org_id, source_object, target_org_id, target_object,
     direction, trigger_on_create, trigger_on_update, trigger_on_delete,
-    filters, field_mappings, owner_config,
+    filters, record_type_config, field_mappings, owner_config,
     max_retries, retry_on_partial, notify_on_failure,
   } = body;
 
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       trigger_on_update: trigger_on_update ?? false,
       trigger_on_delete: trigger_on_delete ?? false,
       filters: filters ?? [],
+      record_type_config: record_type_config ?? { strategy: "none", target_record_type_id: null, target_record_type_name: null, mappings: [], reverse_target_record_type_id: null, reverse_target_record_type_name: null, reverse_mappings: [] },
       field_mappings: field_mappings ?? [],
       owner_config: owner_config ?? null,
       max_retries: max_retries ?? 3,

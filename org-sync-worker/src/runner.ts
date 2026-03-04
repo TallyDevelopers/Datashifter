@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { queryRecords, upsertByExternalId } from "./salesforce.js";
 import { createSyncLog, finalizeSyncLog, writeRecordErrors } from "./logger.js";
-import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, OwnerConfig, OwnerUser } from "./types.js";
+import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, OwnerConfig, OwnerUser, RecordTypeConfig } from "./types.js";
 
 // ─── Round-robin counters (per sync config + direction, in-memory) ────────────
 // Key: `${syncConfigId}:forward` or `${syncConfigId}:reverse`
@@ -116,6 +116,45 @@ function evaluateFilter(record: SalesforceRecord, filter: SyncFilter): boolean {
 }
 
 /**
+ * Resolves the RecordTypeId that should be stamped on an outbound record.
+ *
+ * strategy = "none"   → do not touch RecordTypeId (returns null)
+ * strategy = "fixed"  → stamp target_record_type_id (or reverse_target_record_type_id)
+ * strategy = "mapped" → look up the source record's RecordTypeId in the mappings table;
+ *                       if target_id is null for that source type → skip this record
+ *
+ * Returns:
+ *   { recordTypeId: string | null, skip: boolean }
+ *   skip = true means this record should be dropped (source type mapped to "None")
+ */
+function resolveRecordTypeId(
+  config: RecordTypeConfig | null | undefined,
+  direction: "forward" | "reverse",
+  sourceRecord: SalesforceRecord
+): { recordTypeId: string | null; skip: boolean } {
+  if (!config || config.strategy === "none") return { recordTypeId: null, skip: false };
+
+  if (config.strategy === "fixed") {
+    const id = direction === "forward"
+      ? config.target_record_type_id
+      : config.reverse_target_record_type_id;
+    return { recordTypeId: id ?? null, skip: false };
+  }
+
+  // strategy === "mapped"
+  const sourceRTId = sourceRecord["RecordTypeId"] as string | undefined;
+  if (!sourceRTId) return { recordTypeId: null, skip: false }; // no source RT — pass through
+
+  const mappings = direction === "forward" ? config.mappings : config.reverse_mappings;
+  const mapping = mappings.find((m) => m.source_id === sourceRTId);
+
+  if (!mapping) return { recordTypeId: null, skip: false }; // unmapped — pass through
+  if (!mapping.target_id) return { recordTypeId: null, skip: true }; // explicitly mapped to None
+
+  return { recordTypeId: mapping.target_id, skip: false };
+}
+
+/**
  * Maps a source record's fields to a target record payload using field_mappings.
  * Strips null/undefined values for cleanliness.
  */
@@ -154,10 +193,16 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
     const sinceDate = await getLastRunDate(config.id, intervalMs);
     console.log(`[runner] Querying records modified since ${sinceDate.toISOString()} (window: ${intervalMs / 1000}s)`);
 
-    // Extract the source fields we need from the field mappings
-    const sourceFields = config.field_mappings
-      .map((m) => m.source_field)
-      .filter((f) => f && f.trim() !== "");
+    // Extract the source fields we need from the field mappings.
+    // Always include RecordTypeId if record_type_config.strategy = "mapped"
+    // so we can look up the correct target record type per record.
+    const needsRecordTypeId = config.record_type_config?.strategy === "mapped";
+    const sourceFields = [
+      ...config.field_mappings
+        .map((m) => m.source_field)
+        .filter((f) => f && f.trim() !== ""),
+      ...(needsRecordTypeId ? ["RecordTypeId"] : []),
+    ].filter((f, i, arr) => arr.indexOf(f) === i); // deduplicate
 
     if (sourceFields.length === 0) {
       console.log(`[runner] No field mappings defined — skipping sync "${config.name}". Add field mappings in the portal to activate this sync.`);
@@ -196,16 +241,24 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
 
     // Build upsert payloads using External ID — no mapping table lookup needed.
     // Salesforce handles find-or-create via OrgSync_Source_Id__c on each record.
-    const forwardBatch = filtered.map((rec, idx) => {
+    const forwardBatch: Array<{ sourceRecordId: string; payload: Record<string, unknown> }> = [];
+    let rtSkippedForward = 0;
+
+    for (let idx = 0; idx < filtered.length; idx++) {
+      const rec = filtered[idx];
+      const { recordTypeId, skip } = resolveRecordTypeId(config.record_type_config, "forward", rec);
+      if (skip) { rtSkippedForward++; continue; }
+
       const payload = mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.source_field, targetField: m.target_field })));
-      // Inject OwnerId — on first insert Salesforce sets it; on update we skip
-      // to avoid overwriting the existing owner. We use a sentinel approach:
-      // always include it but Salesforce ignores OwnerId on PATCH for existing records
-      // when the field hasn't changed. For round-robin we always set it intentionally.
       const ownerId = resolveOwnerId(config.owner_config, "forward", idx);
       if (ownerId) payload["OwnerId"] = ownerId;
-      return { sourceRecordId: rec.Id as string, payload };
-    });
+      if (recordTypeId) payload["RecordTypeId"] = recordTypeId;
+      forwardBatch.push({ sourceRecordId: rec.Id as string, payload });
+    }
+
+    if (rtSkippedForward > 0) {
+      console.log(`[runner] ${rtSkippedForward} records skipped — source record type mapped to None`);
+    }
 
     // Push to target org via External ID upsert
     const upsertResults = await upsertByExternalId(
@@ -237,10 +290,16 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
 
     if (config.direction === "bidirectional") {
       console.log(`[runner] Running reverse direction for bidirectional sync "${config.name}"`);
+      const reverseNeedsRTId = config.record_type_config?.strategy === "mapped";
+      const reverseSourceFields = [
+        ...config.field_mappings.map((m) => m.target_field).filter(Boolean),
+        ...(reverseNeedsRTId ? ["RecordTypeId"] : []),
+      ].filter((f, i, arr) => arr.indexOf(f) === i);
+
       const reverseSourceRecords = await queryRecords(
         config.target_org,
         config.target_object,
-        config.field_mappings.map((m) => m.target_field).filter(Boolean),
+        reverseSourceFields,
         sinceDate
       );
 
@@ -250,12 +309,24 @@ export async function runSyncConfig(config: SyncConfig, intervalMs: number): Pro
 
       result.processed += reverseFiltered.length;
 
-      const reverseBatch = reverseFiltered.map((rec, idx) => {
+      const reverseBatch: Array<{ sourceRecordId: string; payload: Record<string, unknown> }> = [];
+      let rtSkippedReverse = 0;
+
+      for (let idx = 0; idx < reverseFiltered.length; idx++) {
+        const rec = reverseFiltered[idx];
+        const { recordTypeId, skip } = resolveRecordTypeId(config.record_type_config, "reverse", rec);
+        if (skip) { rtSkippedReverse++; continue; }
+
         const payload = mapRecord(rec, config.field_mappings.map((m) => ({ sourceField: m.target_field, targetField: m.source_field })));
         const ownerId = resolveOwnerId(config.owner_config, "reverse", idx);
         if (ownerId) payload["OwnerId"] = ownerId;
-        return { sourceRecordId: rec.Id as string, payload };
-      });
+        if (recordTypeId) payload["RecordTypeId"] = recordTypeId;
+        reverseBatch.push({ sourceRecordId: rec.Id as string, payload });
+      }
+
+      if (rtSkippedReverse > 0) {
+        console.log(`[runner] ${rtSkippedReverse} reverse records skipped — source record type mapped to None`);
+      }
 
       const reverseResults = await upsertByExternalId(config.source_org, config.source_object, reverseBatch);
 

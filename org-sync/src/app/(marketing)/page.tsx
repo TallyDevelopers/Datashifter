@@ -28,10 +28,9 @@ export const metadata: Metadata = {
 import { Hero } from "@/components/marketing/hero";
 import { TrustBar } from "@/components/marketing/trust-bar";
 import { HowItWorks } from "@/components/marketing/how-it-works";
-import { ProductShowcase } from "@/components/marketing/product-showcase";
 import { PainPoints } from "@/components/marketing/pain-points";
-import { AISection } from "@/components/marketing/ai-section";
-import { Features } from "@/components/marketing/features";
+import { AITeaser } from "@/components/marketing/ai-teaser";
+import { SecuritySection } from "@/components/marketing/security-section";
 import { Testimonials } from "@/components/marketing/testimonials";
 import { CTASection } from "@/components/marketing/cta-section";
 
@@ -41,10 +40,9 @@ export default function Home() {
       <Hero />
       <TrustBar />
       <HowItWorks />
-      <ProductShowcase />
       <PainPoints />
-      <AISection />
-      <Features />
+      <AITeaser />
+      <SecuritySection />
       <Testimonials />
       <CTASection />
     </>

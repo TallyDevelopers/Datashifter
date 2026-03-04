@@ -198,14 +198,15 @@ export async function ensureExternalIdField(
   // 1. Check if the field already exists via describeSObject
   try {
     const describeRes = await fetch(
-      `${instanceUrl}/services/data/${SF_API_VERSION}/sobjects/${sobjectType}/describe`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      `${instanceUrl}/services/data/${SF_API_VERSION}/sobjects/${sobjectType}/describe?_ts=${Date.now()}`,
+      { headers: { Authorization: `Bearer ${accessToken}`, "Cache-Control": "no-cache" } }
     );
 
     if (describeRes.ok) {
       const describeData = await describeRes.json() as { fields: Array<{ name: string }> };
+      const target = EXTERNAL_ID_FIELD_API_NAME.toLowerCase();
       const alreadyExists = describeData.fields.some(
-        (f) => f.name === EXTERNAL_ID_FIELD_API_NAME
+        (f) => f.name.toLowerCase() === target
       );
       if (alreadyExists) return { status: "exists" };
     }
@@ -213,36 +214,9 @@ export async function ensureExternalIdField(
     // If describe fails we still attempt creation below
   }
 
-  // 2. Get the SObject ID for the Tooling API
-  const entityRes = await fetch(
-    `${instanceUrl}/services/data/${SF_API_VERSION}/tooling/query?q=${encodeURIComponent(
-      `SELECT Id FROM EntityDefinition WHERE QualifiedApiName = '${sobjectType}' LIMIT 1`
-    )}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-
-  if (!entityRes.ok) {
-    const txt = await entityRes.text();
-    const permissionError = txt.includes("INSUFFICIENT_ACCESS") || txt.includes("INVALID_SESSION");
-    return {
-      status: "error",
-      message: `Could not query object definition: ${txt.slice(0, 200)}`,
-      permissionError,
-    };
-  }
-
-  const entityData = await entityRes.json() as { records: Array<{ Id: string }> };
-  if (!entityData.records || entityData.records.length === 0) {
-    return {
-      status: "error",
-      message: `Object "${sobjectType}" not found in this org.`,
-      permissionError: false,
-    };
-  }
-
-  const tableEnumOrId = entityData.records[0].Id;
-
-  // 3. Create the custom field via Tooling API
+  // 2. Create the custom field via Tooling API.
+  // FullName = "ObjectApiName.FieldApiName" tells Salesforce which object to
+  // create the field on — no separate EntityDefinition lookup needed.
   const createRes = await fetch(
     `${instanceUrl}/services/data/${SF_API_VERSION}/tooling/sobjects/CustomField`,
     {
@@ -263,7 +237,6 @@ export async function ensureExternalIdField(
           required: false,
           description:
             "Managed by OrgSync. Stores the source org record ID to enable accurate upserts. Do not edit.",
-          TableEnumOrId: tableEnumOrId,
         },
       }),
     }
@@ -277,8 +250,13 @@ export async function ensureExternalIdField(
       txt.includes("NOT_SUPPORTED") ||
       createRes.status === 403;
 
-    // If it already exists (race condition / duplicate) that's fine
-    if (txt.includes("DUPLICATE_VALUE") || txt.includes("already exists")) {
+    // If it already exists (race condition / Salesforce cached describe) that's fine
+    if (
+      txt.includes("DUPLICATE_VALUE") ||
+      txt.includes("DUPLICATE_DEVELOPER_NAME") ||
+      txt.includes("already exists") ||
+      txt.includes("There is already a field named")
+    ) {
       return { status: "exists" };
     }
 

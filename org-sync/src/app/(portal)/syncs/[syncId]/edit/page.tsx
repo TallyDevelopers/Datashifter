@@ -8,7 +8,7 @@ import {
   Settings, Filter, Columns, FileText, Loader2, Plus, Trash2,
   ChevronDown, Zap, RefreshCw, Sparkles, AlertTriangle, XCircle,
   CheckCircle2, FlaskConical, ShieldCheck, ShieldX, TriangleAlert,
-  UserCog, Users, RotateCcw, User, ArrowRightLeft,
+  UserCog, Users, RotateCcw, User, ArrowRightLeft, Tag,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/portal/breadcrumbs";
 import { toast } from "sonner";
@@ -75,6 +75,31 @@ interface OwnerConfig {
   reverse_users?: OrgUser[];
 }
 
+interface SalesforceRecordType {
+  id: string;
+  name: string;
+  developerName: string;
+  isActive: boolean;
+  isMaster: boolean;
+}
+
+interface RecordTypeMapping {
+  source_id: string;
+  source_name: string;
+  target_id: string | null;
+  target_name: string | null;
+}
+
+interface RecordTypeConfig {
+  strategy: "none" | "fixed" | "mapped";
+  target_record_type_id: string | null;
+  target_record_type_name: string | null;
+  mappings: RecordTypeMapping[];
+  reverse_target_record_type_id: string | null;
+  reverse_target_record_type_name: string | null;
+  reverse_mappings: RecordTypeMapping[];
+}
+
 interface BuilderState {
   name: string;
   source_org_id: string;
@@ -87,6 +112,7 @@ interface BuilderState {
   trigger_on_delete: boolean;
   owner_config: OwnerConfig;
   filters: FilterRule[];
+  record_type_config: RecordTypeConfig;
   field_mappings: FieldMapping[];
   max_retries: number;
   retry_on_partial: boolean;
@@ -117,9 +143,10 @@ const STEPS = [
   { id: 3, label: "Triggers", icon: Settings },
   { id: 4, label: "Owners", icon: UserCog },
   { id: 5, label: "Filters", icon: Filter },
-  { id: 6, label: "Fields", icon: Columns },
-  { id: 7, label: "Retry", icon: RotateCcw },
-  { id: 8, label: "Review", icon: FileText },
+  { id: 6, label: "Rec. Types", icon: Tag },
+  { id: 7, label: "Fields", icon: Columns },
+  { id: 8, label: "Retry", icon: RotateCcw },
+  { id: 9, label: "Review", icon: FileText },
 ];
 
 function StepBar({ current }: { current: number }) {
@@ -416,6 +443,287 @@ function OwnerStep({
   );
 }
 
+// ─── Record Type Step ────────────────────────────────────────────────────────
+
+const RT_STRATEGIES: { value: RecordTypeConfig["strategy"]; label: string; desc: string }[] = [
+  { value: "none",   label: "No restriction", desc: "Sync records of any record type — RecordTypeId is not stamped on new records" },
+  { value: "fixed",  label: "Fixed type",     desc: "All records created in the target get the same record type, regardless of source" },
+  { value: "mapped", label: "Map by type",    desc: "Each source record type maps to a specific target record type" },
+];
+
+function RecordTypeStep({
+  direction,
+  rtConfig,
+  sourceRecordTypes,
+  targetRecordTypes,
+  loading,
+  sourceOrgLabel,
+  targetOrgLabel,
+  sourceObject,
+  targetObject,
+  onChange,
+}: {
+  direction: "one_way" | "bidirectional";
+  rtConfig: RecordTypeConfig;
+  sourceRecordTypes: SalesforceRecordType[];
+  targetRecordTypes: SalesforceRecordType[];
+  loading: boolean;
+  sourceOrgLabel: string;
+  targetOrgLabel: string;
+  sourceObject: string;
+  targetObject: string;
+  onChange: (cfg: RecordTypeConfig) => void;
+}) {
+  const nonMasterTarget = targetRecordTypes.filter((rt) => !rt.isMaster);
+  const nonMasterSource = sourceRecordTypes.filter((rt) => !rt.isMaster);
+  const noneOnEitherSide = nonMasterSource.length === 0 && nonMasterTarget.length === 0;
+
+  function updateMapping(sourceId: string, targetId: string | null, targetName: string | null) {
+    const existing = rtConfig.mappings.find((m) => m.source_id === sourceId);
+    const sourceName = sourceRecordTypes.find((rt) => rt.id === sourceId)?.name ?? sourceId;
+    const updated: RecordTypeMapping[] = existing
+      ? rtConfig.mappings.map((m) => m.source_id === sourceId ? { ...m, target_id: targetId, target_name: targetName } : m)
+      : [...rtConfig.mappings, { source_id: sourceId, source_name: sourceName, target_id: targetId, target_name: targetName }];
+    onChange({ ...rtConfig, mappings: updated });
+  }
+
+  function updateReverseMapping(sourceId: string, targetId: string | null, targetName: string | null) {
+    const existing = rtConfig.reverse_mappings.find((m) => m.source_id === sourceId);
+    const sourceName = targetRecordTypes.find((rt) => rt.id === sourceId)?.name ?? sourceId;
+    const updated: RecordTypeMapping[] = existing
+      ? rtConfig.reverse_mappings.map((m) => m.source_id === sourceId ? { ...m, target_id: targetId, target_name: targetName } : m)
+      : [...rtConfig.reverse_mappings, { source_id: sourceId, source_name: sourceName, target_id: targetId, target_name: targetName }];
+    onChange({ ...rtConfig, reverse_mappings: updated });
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-3 text-sm text-muted-foreground">Loading record types…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Control how <strong className="text-foreground">RecordTypeId</strong> is handled when records are created in the target org.
+        {noneOnEitherSide && (
+          <span className="ml-1 text-muted-foreground/70">
+            Neither <span className="font-mono">{sourceObject}</span> nor <span className="font-mono">{targetObject}</span> have custom record types — you can leave this as <em>No restriction</em>.
+          </span>
+        )}
+      </p>
+
+      {/* Forward direction */}
+      <div className="rounded-xl border p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <ArrowRight className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold">
+            Records written to <span className="text-primary">{targetOrgLabel}</span>
+            <span className="text-muted-foreground font-normal"> ({targetObject})</span>
+          </span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          {RT_STRATEGIES.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onChange({ ...rtConfig, strategy: opt.value, target_record_type_id: null, target_record_type_name: null, mappings: [] })}
+              className={cn(
+                "flex flex-col gap-1 rounded-xl border p-4 text-left transition-all",
+                rtConfig.strategy === opt.value ? "border-primary bg-primary/5" : "hover:border-primary/40 hover:bg-muted/50"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <Tag className={cn("h-4 w-4", rtConfig.strategy === opt.value ? "text-primary" : "text-muted-foreground")} />
+                {rtConfig.strategy === opt.value && <Check className="h-4 w-4 text-primary" />}
+              </div>
+              <p className="font-medium text-sm mt-2">{opt.label}</p>
+              <p className="text-xs text-muted-foreground">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        {rtConfig.strategy === "fixed" && (
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Target Record Type</Label>
+            {nonMasterTarget.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground italic">No custom record types found on {targetObject} in {targetOrgLabel}.</p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {nonMasterTarget.map((rt) => (
+                  <button
+                    key={rt.id}
+                    onClick={() => onChange({ ...rtConfig, target_record_type_id: rt.id, target_record_type_name: rt.name })}
+                    className={cn(
+                      "w-full flex items-center justify-between rounded-lg border px-4 py-3 text-sm text-left transition-all",
+                      rtConfig.target_record_type_id === rt.id ? "border-primary bg-primary/5" : "hover:border-primary/40 hover:bg-muted/50"
+                    )}
+                  >
+                    <div>
+                      <span className="font-medium">{rt.name}</span>
+                      <span className="ml-2 font-mono text-xs text-muted-foreground">{rt.developerName}</span>
+                    </div>
+                    {rtConfig.target_record_type_id === rt.id && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {rtConfig.strategy === "mapped" && (
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Record Type Mapping</Label>
+            {nonMasterSource.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground italic">No custom record types found on {sourceObject}.</p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {nonMasterSource.map((srt) => {
+                  const currentMapping = rtConfig.mappings.find((m) => m.source_id === srt.id);
+                  return (
+                    <div key={srt.id} className="flex items-center gap-3 rounded-lg border px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{srt.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{srt.developerName}</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="relative flex-1 min-w-0">
+                        <select
+                          value={currentMapping?.target_id ?? ""}
+                          onChange={(e) => {
+                            const trt = targetRecordTypes.find((r) => r.id === e.target.value);
+                            updateMapping(srt.id, trt?.id ?? null, trt?.name ?? null);
+                          }}
+                          className="w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">— None (skip) —</option>
+                          {nonMasterTarget.map((trt) => (
+                            <option key={trt.id} value={trt.id}>{trt.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Reverse direction (bidirectional only) */}
+      {direction === "bidirectional" && (() => {
+        const hasReverseFixed = !!rtConfig.reverse_target_record_type_id;
+        const hasReverseMapped = rtConfig.reverse_mappings.length > 0;
+        const reverseStrategy: RecordTypeConfig["strategy"] =
+          hasReverseFixed ? "fixed" : hasReverseMapped ? "mapped" : "none";
+        return (
+          <div className="rounded-xl border p-5 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowLeft className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-semibold">
+                Records written to <span className="text-primary">{sourceOrgLabel}</span>
+                <span className="text-muted-foreground font-normal"> ({sourceObject})</span>
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {RT_STRATEGIES.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    if (opt.value === "none") onChange({ ...rtConfig, reverse_target_record_type_id: null, reverse_target_record_type_name: null, reverse_mappings: [] });
+                    else if (opt.value === "fixed") onChange({ ...rtConfig, reverse_mappings: [] });
+                    else onChange({ ...rtConfig, reverse_target_record_type_id: null, reverse_target_record_type_name: null });
+                  }}
+                  className={cn(
+                    "flex flex-col gap-1 rounded-xl border p-4 text-left transition-all",
+                    reverseStrategy === opt.value ? "border-primary bg-primary/5" : "hover:border-primary/40 hover:bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <Tag className={cn("h-4 w-4", reverseStrategy === opt.value ? "text-primary" : "text-muted-foreground")} />
+                    {reverseStrategy === opt.value && <Check className="h-4 w-4 text-primary" />}
+                  </div>
+                  <p className="font-medium text-sm mt-2">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            {reverseStrategy === "fixed" && (
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Target Record Type</Label>
+                {sourceRecordTypes.filter(rt => !rt.isMaster).length === 0 ? (
+                  <p className="mt-2 text-sm text-muted-foreground italic">No custom record types on {sourceObject}.</p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {sourceRecordTypes.filter(rt => !rt.isMaster).map((rt) => (
+                      <button key={rt.id}
+                        onClick={() => onChange({ ...rtConfig, reverse_target_record_type_id: rt.id, reverse_target_record_type_name: rt.name })}
+                        className={cn(
+                          "w-full flex items-center justify-between rounded-lg border px-4 py-3 text-sm text-left transition-all",
+                          rtConfig.reverse_target_record_type_id === rt.id ? "border-primary bg-primary/5" : "hover:border-primary/40 hover:bg-muted/50"
+                        )}
+                      >
+                        <div>
+                          <span className="font-medium">{rt.name}</span>
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">{rt.developerName}</span>
+                        </div>
+                        {rtConfig.reverse_target_record_type_id === rt.id && <Check className="h-4 w-4 text-primary shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {reverseStrategy === "mapped" && (
+              <div>
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Record Type Mapping (reverse)</Label>
+                <div className="mt-2 space-y-2">
+                  {targetRecordTypes.filter(rt => !rt.isMaster).map((srt) => {
+                    const currentMapping = rtConfig.reverse_mappings.find((m) => m.source_id === srt.id);
+                    return (
+                      <div key={srt.id} className="flex items-center gap-3 rounded-lg border px-4 py-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{srt.name}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{srt.developerName}</p>
+                        </div>
+                        <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="relative flex-1 min-w-0">
+                          <select
+                            value={currentMapping?.target_id ?? ""}
+                            onChange={(e) => {
+                              const trt = sourceRecordTypes.find((r) => r.id === e.target.value);
+                              updateReverseMapping(srt.id, trt?.id ?? null, trt?.name ?? null);
+                            }}
+                            className="w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="">— None (skip) —</option>
+                            {sourceRecordTypes.filter(rt => !rt.isMaster).map((trt) => (
+                              <option key={trt.id} value={trt.id}>{trt.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 export default function EditSyncPage() {
   const router = useRouter();
   const params = useParams();
@@ -434,6 +742,19 @@ export default function EditSyncPage() {
   const [analyzingMappings, setAnalyzingMappings] = useState(false);
   const [testReport, setTestReport] = useState<PreflightReport | null>(null);
   const [runningTest, setRunningTest] = useState(false);
+
+  // Tracking field check for step 6
+  const [trackingFieldStatus, setTrackingFieldStatus] = useState<
+    Array<{ orgId: string; orgLabel: string; object: string; exists: boolean }>
+  >([]);
+  const [checkingTrackingField, setCheckingTrackingField] = useState(false);
+  const [creatingTrackingField, setCreatingTrackingField] = useState<string | null>(null);
+
+  // Record type state for step 6
+  const [sourceRecordTypes, setSourceRecordTypes] = useState<SalesforceRecordType[]>([]);
+  const [targetRecordTypes, setTargetRecordTypes] = useState<SalesforceRecordType[]>([]);
+  const [loadingRecordTypes, setLoadingRecordTypes] = useState(false);
+
   const [targetUsers, setTargetUsers] = useState<OrgUser[]>([]);
   const [sourceUsers, setSourceUsers] = useState<OrgUser[]>([]);
   const [loadingTargetUsers, setLoadingTargetUsers] = useState(false);
@@ -464,6 +785,14 @@ export default function EditSyncPage() {
   const [syncingSourceMeta, setSyncingSourceMeta] = useState(false);
   const [syncingTargetMeta, setSyncingTargetMeta] = useState(false);
 
+  const defaultRecordTypeConfig: RecordTypeConfig = {
+    strategy: "none",
+    target_record_type_id: null, target_record_type_name: null,
+    mappings: [],
+    reverse_target_record_type_id: null, reverse_target_record_type_name: null,
+    reverse_mappings: [],
+  };
+
   const [state, setState] = useState<BuilderState>({
     name: "",
     source_org_id: "", source_object: "",
@@ -471,7 +800,9 @@ export default function EditSyncPage() {
     direction: "one_way",
     trigger_on_create: true, trigger_on_update: false, trigger_on_delete: false,
     owner_config: { strategy: "fixed", target_users: [], reverse_strategy: "fixed", reverse_users: [] },
-    filters: [], field_mappings: [],
+    filters: [],
+    record_type_config: defaultRecordTypeConfig,
+    field_mappings: [],
     max_retries: 3,
     retry_on_partial: true,
     notify_on_failure: true,
@@ -569,6 +900,7 @@ export default function EditSyncPage() {
           trigger_on_delete: sync.trigger_on_delete ?? false,
           owner_config: sync.owner_config ?? { strategy: "fixed", target_users: [], reverse_strategy: "fixed", reverse_users: [] },
           filters,
+          record_type_config: sync.record_type_config ?? defaultRecordTypeConfig,
           field_mappings: sync.field_mappings ?? [],
           max_retries: sync.max_retries ?? 3,
           retry_on_partial: sync.retry_on_partial ?? true,
@@ -613,6 +945,22 @@ export default function EditSyncPage() {
       }
     }
   }, [state.target_org_id, state.source_org_id, state.direction]);
+
+  const loadRecordTypes = useCallback(async () => {
+    if (!state.source_org_id || !state.source_object || !state.target_org_id || !state.target_object) return;
+    setLoadingRecordTypes(true);
+    try {
+      const [srcRes, tgtRes] = await Promise.all([
+        fetch(`/api/salesforce/orgs/${state.source_org_id}/objects/${state.source_object}/record-types`),
+        fetch(`/api/salesforce/orgs/${state.target_org_id}/objects/${state.target_object}/record-types`),
+      ]);
+      const [srcData, tgtData] = await Promise.all([srcRes.json(), tgtRes.json()]);
+      setSourceRecordTypes(srcData.recordTypes ?? []);
+      setTargetRecordTypes(tgtData.recordTypes ?? []);
+    } finally {
+      setLoadingRecordTypes(false);
+    }
+  }, [state.source_org_id, state.source_object, state.target_org_id, state.target_object]);
 
   async function syncMetadata(orgId: string, isSource: boolean) {
     isSource ? setSyncingSourceMeta(true) : setSyncingTargetMeta(true);
@@ -779,6 +1127,7 @@ export default function EditSyncPage() {
           trigger_on_delete: state.trigger_on_delete,
           owner_config: state.owner_config,
           filters: state.filters.map(({ field, operator, value }) => ({ field, operator, value })),
+          record_type_config: state.record_type_config,
           field_mappings: state.field_mappings,
           max_retries: state.max_retries,
           retry_on_partial: state.retry_on_partial,
@@ -825,16 +1174,85 @@ export default function EditSyncPage() {
       if (state.direction === "bidirectional" && state.owner_config.reverse_strategy !== "passthrough" && (state.owner_config.reverse_users ?? []).length === 0) return false;
       return true;
     }
-    if (step === 8) return !!state.name.trim() && state.field_mappings.length > 0;
+    if (step === 9) return !!state.name.trim() && state.field_mappings.length > 0;
     return true;
   }
 
   function goNext() {
     if (step === 3) loadUsers();
-    if (step === 5 && sourceFields.length === 0) {
-      loadFields(state.source_org_id, state.source_object, state.target_org_id, state.target_object);
+    // Load record types when entering step 6
+    if (step === 5) loadRecordTypes();
+    // Load fields + check tracking field when entering Fields step (step 7)
+    if (step === 6) {
+      if (sourceFields.length === 0) {
+        loadFields(state.source_org_id, state.source_object, state.target_org_id, state.target_object);
+      }
+      checkTrackingFields();
     }
     setStep((s) => s + 1);
+  }
+
+  async function checkTrackingFields() {
+    if (!state.target_org_id || !state.target_object) return;
+    setCheckingTrackingField(true);
+    setTrackingFieldStatus([]);
+    try {
+      const toCheck = [
+        { orgId: state.target_org_id, object: state.target_object },
+        ...(state.direction === "bidirectional" && state.source_org_id && state.source_object
+          ? [{ orgId: state.source_org_id, object: state.source_object }]
+          : []),
+      ];
+      const results = await Promise.all(
+        toCheck.map(async ({ orgId, object }) => {
+          const org = orgs.find((o) => o.id === orgId);
+          const orgLabel = org?.label ?? orgId;
+          try {
+            const res = await fetch(`/api/salesforce/orgs/${orgId}/objects/${object}/fields`);
+            const data = await res.json();
+            const exists = (data.fields ?? []).some(
+              (f: { api_name: string }) => f.api_name === "OrgSync_Source_Id__c"
+            );
+            return { orgId, orgLabel, object, exists };
+          } catch {
+            return { orgId, orgLabel, object, exists: false };
+          }
+        })
+      );
+      setTrackingFieldStatus(results);
+    } finally {
+      setCheckingTrackingField(false);
+    }
+  }
+
+  async function handleCreateTrackingField(orgId: string, sobjectType: string) {
+    const key = `${orgId}:${sobjectType}`;
+    setCreatingTrackingField(key);
+    try {
+      const res = await fetch(
+        `/api/salesforce/orgs/${orgId}/ensure-external-id-field`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sobjectType }),
+        }
+      );
+      const data = await res.json();
+      if (data.status === "error") {
+        toast.error(data.message ?? "Failed to create tracking field");
+        return;
+      }
+      toast.success(`Tracking field created on ${sobjectType} — records will update correctly`);
+      setTrackingFieldStatus((prev) =>
+        prev.map((f) =>
+          f.orgId === orgId && f.object === sobjectType ? { ...f, exists: true } : f
+        )
+      );
+    } catch {
+      toast.error("Failed to create tracking field");
+    } finally {
+      setCreatingTrackingField(null);
+    }
   }
 
   function renderStep() {
@@ -1056,7 +1474,61 @@ export default function EditSyncPage() {
 
       case 6:
         return (
+          <RecordTypeStep
+            direction={state.direction}
+            rtConfig={state.record_type_config}
+            sourceRecordTypes={sourceRecordTypes}
+            targetRecordTypes={targetRecordTypes}
+            loading={loadingRecordTypes}
+            sourceOrgLabel={orgs.find(o => o.id === state.source_org_id)?.label ?? "Source Org"}
+            targetOrgLabel={orgs.find(o => o.id === state.target_org_id)?.label ?? "Target Org"}
+            sourceObject={state.source_object}
+            targetObject={state.target_object}
+            onChange={(cfg) => setState((p) => ({ ...p, record_type_config: cfg }))}
+          />
+        );
+
+      case 7:
+        return (
           <div className="space-y-4">
+
+            {/* Tracking field status banner */}
+            {checkingTrackingField && (
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                Checking OrgSync tracking field…
+              </div>
+            )}
+
+            {!checkingTrackingField && trackingFieldStatus.map((tf) => (
+              tf.exists ? (
+                <div key={`${tf.orgId}:${tf.object}`} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                  <span><span className="font-mono font-semibold">OrgSync_Source_Id__c</span> is ready on <span className="font-semibold">{tf.object}</span> in {tf.orgLabel} — records will update correctly, no duplicates.</span>
+                </div>
+              ) : (
+                <div key={`${tf.orgId}:${tf.object}`} className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-amber-800">Tracking field missing on <span className="font-mono">{tf.object}</span> in {tf.orgLabel}</p>
+                    <p className="mt-0.5 text-amber-700 leading-relaxed">
+                      OrgSync needs a custom field <span className="font-mono font-medium">OrgSync_Source_Id__c</span> on this object to know whether to update an existing record or create a new one. Without it, repeat syncs may create duplicates.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCreateTrackingField(tf.orgId, tf.object)}
+                    disabled={creatingTrackingField === `${tf.orgId}:${tf.object}`}
+                    className="shrink-0 flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-700 disabled:opacity-60 transition-colors whitespace-nowrap"
+                  >
+                    {creatingTrackingField === `${tf.orgId}:${tf.object}`
+                      ? <><Loader2 className="h-3 w-3 animate-spin" />Creating…</>
+                      : <>Create Field</>
+                    }
+                  </button>
+                </div>
+              )
+            ))}
+
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Map source fields to target fields.</p>
               {state.field_mappings.length > 0 && (
@@ -1178,7 +1650,7 @@ export default function EditSyncPage() {
           </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-6">
             <div>
@@ -1275,7 +1747,7 @@ export default function EditSyncPage() {
           </div>
         );
 
-      case 8:
+      case 9:
         return (
           <div className="space-y-6">
             <div className="space-y-2">
@@ -1299,6 +1771,16 @@ export default function EditSyncPage() {
                     : "Not configured",
                 },
                 { label: "Filters", value: state.filters.length > 0 ? `${state.filters.length} condition${state.filters.length > 1 ? "s" : ""}` : "None (sync all records)" },
+                {
+                  label: "Record Types",
+                  value: state.record_type_config.strategy === "none"
+                    ? "No restriction (sync all record types)"
+                    : state.record_type_config.strategy === "fixed" && state.record_type_config.target_record_type_name
+                    ? `Fixed: ${state.record_type_config.target_record_type_name}`
+                    : state.record_type_config.strategy === "mapped"
+                    ? `${state.record_type_config.mappings.filter(m => m.target_id).length} type${state.record_type_config.mappings.filter(m => m.target_id).length !== 1 ? "s" : ""} mapped`
+                    : "Configured",
+                },
                 { label: "Field Mappings", value: `${state.field_mappings.length} field${state.field_mappings.length !== 1 ? "s" : ""} mapped` },
                 { label: "Auto-Retries", value: state.max_retries === 0 ? "Disabled" : `Up to ${state.max_retries}×` },
               ].map((item) => (
@@ -1443,7 +1925,7 @@ export default function EditSyncPage() {
         <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 1}>
           <ArrowLeft className="mr-1.5 h-4 w-4" />Back
         </Button>
-        {step < 8 ? (
+        {step < 9 ? (
           <Button className="gradient-bg border-0 text-white hover:opacity-90" onClick={goNext} disabled={!canProceed()}>
             Continue<ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftRight, Plus, Trash2, Power, Loader2,
   ChevronRight, ArrowRight, CheckCircle2, PauseCircle,
-  Sparkles, Send, Search, X, Clock, TrendingUp,
+  Sparkles, Send, Search, X, Clock, TrendingUp, AlertTriangle,
+  MessageCircle, ChevronDown, Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 interface ConnectedOrgRef {
   id: string;
@@ -140,23 +143,65 @@ export default function SyncsPage() {
   const [deleteSync, setDeleteSync] = useState<SyncConfig | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
-  const [nlOpen, setNlOpen] = useState(false);
-  const [nlPrompt, setNlPrompt] = useState("");
-  const [nlLoading, setNlLoading] = useState(false);
-  const [nlResult, setNlResult] = useState<{
-    understood: boolean;
-    summary: string;
-    clarification_needed: string | null;
-    config: Record<string, unknown> | null;
-  } | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const [maxSyncConfigs, setMaxSyncConfigs] = useState<number>(999);
+  const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
+
+  // Map of syncId → array of objects missing the tracking field
+  const [missingFields, setMissingFields] = useState<Record<string, Array<{ orgId: string; orgLabel: string; object: string }>>>({});
+  const [creatingField, setCreatingField] = useState<string | null>(null); // key: `${syncId}:${orgId}:${object}`
+
+  // Keys of fields that have been successfully created this session — we skip
+  // re-showing the banner for these even if Salesforce describe is still cached.
+  // Stored in sessionStorage so a hard refresh resets it (field should be visible by then).
+  function getCreatedKeys(): Set<string> {
+    try {
+      const raw = sessionStorage.getItem("orgsync_created_fields");
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  }
+  function addCreatedKey(key: string) {
+    try {
+      const s = getCreatedKeys();
+      s.add(key);
+      sessionStorage.setItem("orgsync_created_fields", JSON.stringify([...s]));
+    } catch { /* ignore */ }
+  }
 
   const fetchSyncs = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/syncs");
       const data = await res.json();
-      setSyncs(data.syncs ?? []);
+      const loaded: SyncConfig[] = data.syncs ?? [];
+      setSyncs(loaded);
+
+      // After loading, check tracking fields for all active syncs
+      const active = loaded.filter((s) => s.is_active);
+      if (active.length > 0) {
+        const created = getCreatedKeys();
+        const checks = await Promise.allSettled(
+          active.map((s) =>
+            fetch(`/api/syncs/${s.id}/tracking-field`)
+              .then((r) => r.json())
+              .then((d) => ({ syncId: s.id, fields: d.fields ?? [] }))
+          )
+        );
+        const newMissing: Record<string, Array<{ orgId: string; orgLabel: string; object: string }>> = {};
+        for (const check of checks) {
+          if (check.status === "fulfilled") {
+            const missing = (check.value.fields as Array<{ orgId: string; orgLabel: string; object: string; exists: boolean }>)
+              .filter((f) => !f.exists && !created.has(`${check.value.syncId}:${f.orgId}:${f.object}`));
+            if (missing.length > 0) newMissing[check.value.syncId] = missing;
+          }
+        }
+        setMissingFields(newMissing);
+      }
     } catch {
       toast.error("Failed to load sync configurations");
     } finally {
@@ -165,6 +210,42 @@ export default function SyncsPage() {
   }, []);
 
   useEffect(() => { fetchSyncs(); }, [fetchSyncs]);
+
+  async function handleCreateField(syncId: string, orgId: string, sobjectType: string) {
+    const key = `${syncId}:${orgId}:${sobjectType}`;
+    setCreatingField(key);
+    try {
+      const res = await fetch(`/api/syncs/${syncId}/tracking-field`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, sobjectType }),
+      });
+      const data = await res.json();
+      if (data.status === "error") {
+        toast.error(data.message ?? "Failed to create tracking field");
+        return;
+      }
+
+      // Persist that this field was created so page refreshes don't re-show the banner
+      // while Salesforce metadata cache is still propagating (typically < 60s)
+      addCreatedKey(key);
+
+      // Clear the banner immediately
+      setMissingFields((prev) => {
+        const updated = { ...prev };
+        updated[syncId] = (updated[syncId] ?? []).filter(
+          (f) => !(f.orgId === orgId && f.object === sobjectType)
+        );
+        if (updated[syncId].length === 0) delete updated[syncId];
+        return updated;
+      });
+      toast.success(`Tracking field created on ${sobjectType} — syncs will now update records correctly`);
+    } catch {
+      toast.error("Failed to create tracking field");
+    } finally {
+      setCreatingField(null);
+    }
+  }
 
   // Load plan limits
   useEffect(() => {
@@ -181,7 +262,7 @@ export default function SyncsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSyncs((prev) => prev.map((s) => s.id === sync.id ? { ...s, is_active: data.is_active } : s));
-      toast.success(data.is_active ? `"${sync.name}" activated` : `"${sync.name}" paused`);
+      toast.success(data.is_active ? `"${sync.name}" is now active` : `"${sync.name}" paused`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to toggle sync");
     } finally {
@@ -189,31 +270,42 @@ export default function SyncsPage() {
     }
   }
 
-  async function handleNLSubmit() {
-    if (!nlPrompt.trim()) return;
-    setNlLoading(true);
-    setNlResult(null);
+  async function handleChatSend(overrideMessage?: string) {
+    const message = (overrideMessage ?? chatInput).trim();
+    if (!message || chatLoading) return;
+    setChatInput("");
+
+    const userMsg: ChatMessage = { role: "user", content: message };
+    const newHistory = [...chatMessages, userMsg];
+    setChatMessages(newHistory);
+    setChatLoading(true);
+
+    // Scroll to bottom
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
     try {
-      const orgsRes = await fetch("/api/salesforce/orgs");
-      const orgsData = await orgsRes.json();
-      const res = await fetch("/api/ai/natural-language-sync", {
+      const res = await fetch("/api/ai/sync-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: nlPrompt, availableOrgs: orgsData.orgs ?? [] }),
+        body: JSON.stringify({
+          message,
+          history: chatMessages.slice(-10), // send prior turns for context
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setNlResult(data);
-      if (data.understood && data.config) {
-        sessionStorage.setItem("nl_prefill", JSON.stringify(data.config));
-        toast.success("AI understood your request — opening the sync builder pre-filled");
-        setNlOpen(false);
-        router.push("/syncs/new?prefill=1");
-      }
+      setChatMessages([...newHistory, { role: "assistant", content: data.reply }]);
     } catch {
-      toast.error("AI failed to parse your request");
+      setChatMessages([...newHistory, {
+        role: "assistant",
+        content: "Sorry, I ran into an issue. Please try again.",
+      }]);
     } finally {
-      setNlLoading(false);
+      setChatLoading(false);
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        chatInputRef.current?.focus();
+      }, 50);
     }
   }
 
@@ -253,10 +345,10 @@ export default function SyncsPage() {
           <Button
             variant="outline"
             className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
-            onClick={() => { setNlOpen(true); setNlResult(null); setNlPrompt(""); }}
+            onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 100); }}
           >
-            <Sparkles className="h-4 w-4" />
-            Describe with AI
+            <MessageCircle className="h-4 w-4" />
+            Ask AI
           </Button>
           {/* Search */}
           <div className="relative">
@@ -404,10 +496,40 @@ export default function SyncsPage() {
                       <span className="text-muted-foreground/40 text-xs">·</span>
                       <LastRunBadge logs={sync.sync_logs} />
                     </div>
+
+                    {/* Tracking field warning — shown when field is missing */}
+                    {(missingFields[sync.id] ?? []).map((missing) => (
+                      <div
+                        key={`${missing.orgId}:${missing.object}`}
+                        className="mt-3 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-amber-800">
+                            Tracking field missing on <span className="font-mono">{missing.object}</span> in {missing.orgLabel}
+                          </p>
+                          <p className="mt-0.5 text-amber-700 leading-relaxed">
+                            OrgSync uses a custom field <span className="font-mono">OrgSync_Source_Id__c</span> to know which records to update vs create. Without it, every sync run may create duplicate records instead of updating existing ones.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleCreateField(sync.id, missing.orgId, missing.object)}
+                          disabled={creatingField === `${sync.id}:${missing.orgId}:${missing.object}`}
+                          className="shrink-0 flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-700 disabled:opacity-60 transition-colors"
+                        >
+                          {creatingField === `${sync.id}:${missing.orgId}:${missing.object}` ? (
+                            <><Loader2 className="h-3 w-3 animate-spin" />Creating…</>
+                          ) : (
+                            <>Create Field</>
+                          )}
+                        </button>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Actions — always visible */}
-                  <div className="flex shrink-0 flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <div className="flex items-center gap-1.5">
                     <Button
                       variant="outline"
                       size="sm"
@@ -425,7 +547,7 @@ export default function SyncsPage() {
                       ) : (
                         <Power className="mr-1 h-3 w-3" />
                       )}
-                      {sync.is_active ? "Pause" : "Activate"}
+                      {togglingId === sync.id && !sync.is_active ? "Setting up…" : sync.is_active ? "Pause" : "Activate"}
                     </Button>
                     <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                       <Link href={`/syncs/${sync.id}/edit`}>Edit</Link>
@@ -438,6 +560,7 @@ export default function SyncsPage() {
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -446,53 +569,129 @@ export default function SyncsPage() {
         </div>
       )}
 
-      {/* Natural Language Sync Dialog */}
-      <Dialog open={nlOpen} onOpenChange={setNlOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Describe your sync
-            </DialogTitle>
-            <DialogDescription>
-              Tell AI what you want to sync in plain English. It will build the configuration for you.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-              <p className="text-xs text-muted-foreground mb-1.5 font-medium">Examples:</p>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• &ldquo;Sync Accounts to Contacts when a record is created, map Name to LastName&rdquo;</li>
-                <li>• &ldquo;Bidirectional sync of Opportunities between both orgs on create and update&rdquo;</li>
-                <li>• &ldquo;Copy Leads to Contacts when created, map Email to Email and Phone to Phone&rdquo;</li>
-              </ul>
+      {/* ── AI Sync Assistant Chat Panel ─────────────────────────────── */}
+      {chatOpen && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl border bg-background shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl bg-primary/5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                <Bot className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-none">Sync Assistant</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Knows your syncs, orgs &amp; logs</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Describe what you want to sync..."
-                value={nlPrompt}
-                onChange={(e) => setNlPrompt(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !nlLoading && handleNLSubmit()}
-                className="flex-1"
-                autoFocus
-              />
-              <Button
-                onClick={handleNLSubmit}
-                disabled={nlLoading || !nlPrompt.trim()}
-                className="gradient-bg border-0 text-white hover:opacity-90 shrink-0"
+            <div className="flex items-center gap-1">
+              {chatMessages.length > 0 && (
+                <button
+                  onClick={() => setChatMessages([])}
+                  className="rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={() => setChatOpen(false)}
+                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                {nlLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
+                <ChevronDown className="h-4 w-4" />
+              </button>
             </div>
-            {nlResult && !nlResult.understood && (
-              <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
-                <p className="text-sm font-medium text-yellow-800 mb-1">Need a bit more detail</p>
-                <p className="text-sm text-yellow-700">{nlResult.clarification_needed ?? "Could you be more specific about the objects and fields?"}</p>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[360px] min-h-[200px]">
+            {chatMessages.length === 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center py-2">Ask anything about your syncs</p>
+                {[
+                  "Are any of my syncs likely to create duplicates?",
+                  "What happens with my Account sync — is it bidirectional?",
+                  "Why might my last sync have partial failures?",
+                  "Are there any issues with my current field mappings?",
+                ].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleChatSend(q)}
+                    className="w-full text-left rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              chatMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex gap-2",
+                    msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                  )}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
+                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-muted text-foreground rounded-tl-sm"
+                    )}
+                  >
+                    {msg.content.split("\n").map((line, j) => (
+                      <span key={j}>
+                        {line}
+                        {j < msg.content.split("\n").length - 1 && <br />}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+            {chatLoading && (
+              <div className="flex gap-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="bg-muted rounded-2xl rounded-tl-sm px-3 py-2.5 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+                </div>
               </div>
             )}
+            <div ref={chatEndRef} />
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Input */}
+          <div className="border-t px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Input
+                ref={chatInputRef}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleChatSend()}
+                placeholder="Ask about your syncs…"
+                className="flex-1 h-9 text-sm border-0 bg-muted/50 focus-visible:ring-1"
+                disabled={chatLoading}
+              />
+              <Button
+                size="icon"
+                className="h-9 w-9 gradient-bg border-0 text-white hover:opacity-90 shrink-0"
+                onClick={() => handleChatSend()}
+                disabled={chatLoading || !chatInput.trim()}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={!!deleteSync} onOpenChange={(open) => !open && setDeleteSync(null)}>
         <AlertDialogContent>

@@ -1,5 +1,6 @@
 import * as http from "http";
 import { fetchActiveSyncConfigs, runSyncConfig, runAutomaticRetries } from "./runner.js";
+import { fetchActiveCpqJobs, runCpqJob } from "./cpq-runner.js";
 
 const INTERVAL_MS = parseInt(process.env.WORKER_INTERVAL_MS ?? "120000", 10); // default 2 min
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
@@ -25,6 +26,7 @@ let lastRunAt: Date | null = null;
 let lastRunDurationMs = 0;
 let totalRuns = 0;
 let totalSyncsExecuted = 0;
+let totalCpqJobsExecuted = 0;
 
 async function runSyncCycle() {
   if (isRunning) {
@@ -59,11 +61,30 @@ async function runSyncCycle() {
     }
 
     // Run automatic retries for any previously failed records
-    // This happens after the main sync cycle so it doesn't delay normal syncs
     try {
       await runAutomaticRetries();
     } catch (err) {
       console.error("[scheduler] Auto-retry cycle failed:", err);
+    }
+
+    // ── CPQ/RCA integration jobs ──────────────────────────────
+    try {
+      const cpqJobs = await fetchActiveCpqJobs();
+      console.log(`[scheduler] Found ${cpqJobs.length} active CPQ job(s)`);
+      for (const job of cpqJobs) {
+        try {
+          console.log(`[scheduler] Running CPQ job: "${job.name}" (${job.id})`);
+          const result = await runCpqJob(job, INTERVAL_MS);
+          if (result.runsCompleted > 0) {
+            totalCpqJobsExecuted++;
+            console.log(`[scheduler] CPQ job done: ${result.stepsFailed} step(s) failed`);
+          }
+        } catch (err) {
+          console.error(`[scheduler] Uncaught error in CPQ job "${job.name}":`, err);
+        }
+      }
+    } catch (err) {
+      console.error("[scheduler] Failed to fetch CPQ jobs:", err);
     }
   } catch (err) {
     console.error("[scheduler] Failed to fetch sync configs:", err);
@@ -91,6 +112,7 @@ function startHealthServer() {
         lastRunDurationMs,
         totalRuns,
         totalSyncsExecuted,
+        totalCpqJobsExecuted,
         intervalMs: INTERVAL_MS,
       }));
       return;
@@ -118,6 +140,7 @@ function startHealthServer() {
         lastRunDurationMs,
         totalRuns,
         totalSyncsExecuted,
+        totalCpqJobsExecuted,
         intervalMs: INTERVAL_MS,
       }));
       return;

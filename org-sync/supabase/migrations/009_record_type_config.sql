@@ -1,0 +1,34 @@
+-- ============================================================
+-- Migration 009: Record Type configuration on sync_configs
+--
+-- Adds a record_type_config jsonb column to sync_configs so
+-- customers can control how RecordTypeId is handled when
+-- records land in the target org.
+--
+-- Shape of record_type_config:
+-- {
+--   strategy: "none" | "fixed" | "mapped",
+--
+--   // strategy = "fixed": all synced records get this RT in target
+--   target_record_type_id: string | null,
+--   target_record_type_name: string | null,
+--
+--   // strategy = "mapped": source RT id → target RT id
+--   mappings: Array<{
+--     source_id: string,
+--     source_name: string,
+--     target_id: string | null,   // null = don't sync this RT
+--     target_name: string | null,
+--   }>,
+--
+--   // For bidirectional syncs — same shape, reverse direction
+--   reverse_target_record_type_id: string | null,
+--   reverse_target_record_type_name: string | null,
+--   reverse_mappings: Array<...>,
+-- }
+--
+-- Run in Supabase Dashboard → SQL Editor
+-- ============================================================
+
+alter table public.sync_configs
+  add column if not exists record_type_config jsonb not null default '{"strategy":"none"}'::jsonb;

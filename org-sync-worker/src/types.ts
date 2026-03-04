@@ -50,6 +50,23 @@ export interface SyncFilter {
   value: string;
 }
 
+export interface RecordTypeMapping {
+  source_id: string;
+  source_name: string;
+  target_id: string | null;
+  target_name: string | null;
+}
+
+export interface RecordTypeConfig {
+  strategy: "none" | "fixed" | "mapped";
+  target_record_type_id: string | null;
+  target_record_type_name: string | null;
+  mappings: RecordTypeMapping[];
+  reverse_target_record_type_id: string | null;
+  reverse_target_record_type_name: string | null;
+  reverse_mappings: RecordTypeMapping[];
+}
+
 export interface SyncConfig {
   id: string;
   customer_id: string;
@@ -63,6 +80,7 @@ export interface SyncConfig {
   trigger_on_update: boolean;
   trigger_on_delete: boolean;
   filters: SyncFilter[];
+  record_type_config?: RecordTypeConfig | null;
   field_mappings: FieldMapping[];
   owner_config: OwnerConfig | null;
   is_active: boolean;

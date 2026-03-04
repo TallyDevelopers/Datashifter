@@ -113,9 +113,9 @@ const features = [
   },
   {
     icon: Shield,
-    title: "Your data stays yours",
+    title: "Your data never touches our servers",
     description:
-      "OrgSync never stores your Salesforce records. It reads, maps, and writes — in memory only. Your data never touches our database.",
+      "OrgSync connects directly from your source Salesforce org to your target Salesforce org. Records are never stored, buffered, or logged on our infrastructure — not even temporarily. Most tools pass your data through their own servers. We don't.",
     ai: false,
   },
 ];
