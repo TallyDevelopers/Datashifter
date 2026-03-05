@@ -108,7 +108,7 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
   const [deleting, setDeleting] = useState(false);
 
   const loadJob = async () => {
-    const res = await fetch(`/api/cpq/${jobId}`);
+    const res = await fetch(`/api/migrations/${jobId}`);
     const data = await res.json();
     setJob(data.job ?? null);
     setLoading(false);
@@ -118,7 +118,7 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
 
   const triggerRun = async () => {
     setRunning(true);
-    await fetch(`/api/cpq/${jobId}/run`, { method: "POST" });
+    await fetch(`/api/migrations/${jobId}/run`, { method: "POST" });
     await loadJob();
     setRunning(false);
   };
@@ -126,7 +126,7 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
   const toggleActive = async () => {
     if (!job) return;
     setToggling(true);
-    await fetch(`/api/cpq/${jobId}`, {
+    await fetch(`/api/migrations/${jobId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: !job.is_active }),
@@ -138,8 +138,8 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
   const deleteJob = async () => {
     if (!confirm("Delete this job? All run history will be lost.")) return;
     setDeleting(true);
-    await fetch(`/api/cpq/${jobId}`, { method: "DELETE" });
-    router.push("/cpq");
+    await fetch(`/api/migrations/${jobId}`, { method: "DELETE" });
+    router.push("/migrations");
   };
 
   if (loading) {
@@ -154,7 +154,7 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
     return (
       <div className="py-24 text-center">
         <p className="text-muted-foreground">Job not found.</p>
-        <Link href="/cpq" className="text-primary text-sm underline mt-2 inline-block">Back to CPQ & RCA</Link>
+        <Link href="/migrations" className="text-primary text-sm underline mt-2 inline-block">Back to Migrations</Link>
       </div>
     );
   }
@@ -165,9 +165,9 @@ export default function CpqJobDetailPage({ params }: { params: Promise<{ jobId: 
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <Link href="/cpq" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+        <Link href="/migrations" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
           <ArrowLeft className="h-4 w-4" />
-          Back to CPQ & RCA
+          Back to Migrations
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">

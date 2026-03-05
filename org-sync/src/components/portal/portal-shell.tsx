@@ -9,10 +9,12 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 function resolvePageMeta(pathname: string): { title: string; description: string } {
   // Exact matches first
   const exact: Record<string, { title: string; description: string }> = {
-    "/dashboard": { title: "Dashboard", description: "Overview of your sync activity" },
+    "/dashboard": { title: "Dashboard", description: "Overview of all your sync and migration activity" },
     "/orgs": { title: "Connected Orgs", description: "Manage your Salesforce org connections" },
-    "/syncs": { title: "Sync Configurations", description: "Configure and manage your data syncs" },
-    "/syncs/new": { title: "New Sync", description: "Set up a new sync configuration" },
+    "/syncs": { title: "Live Syncs", description: "Continuous, automatic data syncs between orgs" },
+    "/syncs/new": { title: "New Live Sync", description: "Set up a new automatic sync configuration" },
+    "/migrations": { title: "Migrations", description: "On-demand bulk data transfers between orgs" },
+    "/migrations/new": { title: "New Migration", description: "Set up a bulk data migration" },
     "/logs": { title: "Sync Logs", description: "Monitor sync executions and errors" },
     "/support": { title: "Support", description: "Get help and manage support tickets" },
     "/help": { title: "Help & Docs", description: "Guides, common errors, and FAQs" },
@@ -23,6 +25,7 @@ function resolvePageMeta(pathname: string): { title: string; description: string
   // Dynamic route patterns
   if (/^\/orgs\/[^/]+\/objects/.test(pathname)) return { title: "Object Browser", description: "Browse objects and fields in this org" };
   if (/^\/syncs\/[^/]+\/edit/.test(pathname)) return { title: "Edit Sync", description: "Update your sync configuration" };
+  if (/^\/migrations\/[^/]+/.test(pathname)) return { title: "Migration Detail", description: "View run history and execution details" };
   if (/^\/logs\/[^/]+/.test(pathname)) return { title: "Log Detail", description: "Inspect records, errors, and retry results" };
   if (/^\/support\/[^/]+/.test(pathname)) return { title: "Support Ticket", description: "View and reply to your support ticket" };
 

@@ -83,7 +83,7 @@ export default function CpqPage() {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/cpq");
+      const res = await fetch("/api/migrations");
       const data = await res.json();
       setJobs(data.jobs ?? []);
     } finally {
@@ -95,7 +95,7 @@ export default function CpqPage() {
 
   const toggleActive = async (job: CpqJob) => {
     setTogglingId(job.id);
-    await fetch(`/api/cpq/${job.id}`, {
+    await fetch(`/api/migrations/${job.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_active: !job.is_active }),
@@ -105,15 +105,15 @@ export default function CpqPage() {
   };
 
   const deleteJob = async (jobId: string) => {
-    if (!confirm("Delete this integration job? This cannot be undone.")) return;
+    if (!confirm("Delete this migration? This cannot be undone.")) return;
     setDeletingId(jobId);
-    await fetch(`/api/cpq/${jobId}`, { method: "DELETE" });
+    await fetch(`/api/migrations/${jobId}`, { method: "DELETE" });
     await loadJobs();
     setDeletingId(null);
   };
 
   const triggerRun = async (jobId: string) => {
-    await fetch(`/api/cpq/${jobId}/run`, { method: "POST" });
+    await fetch(`/api/migrations/${jobId}/run`, { method: "POST" });
     await loadJobs();
   };
 
@@ -130,13 +130,13 @@ export default function CpqPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">CPQ & RCA Integration Jobs</h1>
+          <h1 className="text-2xl font-bold">Migrations</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Dependency-aware sync jobs for Salesforce CPQ, Revenue Cloud Advanced, and complex object graphs.
           </p>
         </div>
         <Button className="gradient-bg border-0 text-white hover:opacity-90" asChild>
-          <Link href="/cpq/new">
+          <Link href="/migrations/new">
             <Plus className="h-4 w-4 mr-2" />
             New Job
           </Link>
@@ -149,13 +149,13 @@ export default function CpqPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl gradient-bg mb-4">
             <GitBranch className="h-7 w-7 text-white" />
           </div>
-          <h2 className="text-lg font-semibold">No integration jobs yet</h2>
+          <h2 className="text-lg font-semibold">No migrations yet</h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            CPQ & RCA jobs let you sync related objects in the correct dependency order — so foreign keys are never broken.
+            Migrations jobs let you sync related objects in the correct dependency order — so foreign keys are never broken.
             Perfect for syncing Product2 → Pricebook → PricebookEntry → Quotes → Quote Lines.
           </p>
           <Button className="gradient-bg border-0 text-white hover:opacity-90 mt-6" asChild>
-            <Link href="/cpq/new">
+            <Link href="/migrations/new">
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Job
             </Link>
@@ -182,7 +182,7 @@ export default function CpqPage() {
                   {/* Main content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <Link href={`/cpq/${job.id}`} className="text-base font-semibold hover:text-primary transition-colors">
+                      <Link href={`/migrations/${job.id}`} className="text-base font-semibold hover:text-primary transition-colors">
                         {job.name}
                       </Link>
                       <Badge variant={job.is_active ? "default" : "secondary"} className={cn(

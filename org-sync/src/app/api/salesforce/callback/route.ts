@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
     // Exchange the authorization code for tokens (with PKCE verifier)
     const tokens = await exchangeCodeForTokens(code, statePayload.env, codeVerifier);
 
-    // Fetch the org's name and ID using the access token
-    const orgInfo = await getOrgInfo(tokens.access_token, tokens.instance_url);
+    // Fetch the org's name and ID — pass identity URL from token response to avoid extra round-trip
+    const orgInfo = await getOrgInfo(tokens.access_token, tokens.instance_url, tokens.id);
 
     // Get our internal customer record
     const { data: customer } = await supabase

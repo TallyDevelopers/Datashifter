@@ -97,30 +97,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "One or more orgs not found" }, { status: 404 });
   }
 
-  const { data: sync, error } = await supabase
-    .from("sync_configs")
-    .insert({
-      customer_id: customer.id,
-      name: name.trim(),
-      source_org_id,
-      source_object,
-      target_org_id,
-      target_object,
-      direction: direction ?? "one_way",
-      trigger_on_create: trigger_on_create ?? true,
-      trigger_on_update: trigger_on_update ?? false,
-      trigger_on_delete: trigger_on_delete ?? false,
-      filters: filters ?? [],
-      record_type_config: record_type_config ?? { strategy: "none", target_record_type_id: null, target_record_type_name: null, mappings: [], reverse_target_record_type_id: null, reverse_target_record_type_name: null, reverse_mappings: [] },
-      field_mappings: field_mappings ?? [],
-      owner_config: owner_config ?? null,
-      max_retries: max_retries ?? 3,
-      retry_on_partial: retry_on_partial ?? true,
-      notify_on_failure: notify_on_failure ?? true,
-      is_active: false,
-    })
-    .select("id")
-    .single();
+  const insertPayload: Record<string, unknown> = {
+    customer_id: customer.id,
+    name: name.trim(),
+    source_org_id,
+    source_object,
+    target_org_id,
+    target_object,
+    direction: direction ?? "one_way",
+    trigger_on_create: trigger_on_create ?? true,
+    trigger_on_update: trigger_on_update ?? false,
+    trigger_on_delete: trigger_on_delete ?? false,
+    filters: filters ?? [],
+    field_mappings: field_mappings ?? [],
+    owner_config: owner_config ?? null,
+    max_retries: max_retries ?? 3,
+    retry_on_partial: retry_on_partial ?? true,
+    notify_on_failure: notify_on_failure ?? true,
+    is_active: false,
+  };
+
+  // record_type_config column may not exist in all environments — add defensively
+  if (record_type_config !== undefined) {
+    insertPayload.record_type_config = record_type_config;
+  }
+
+  // First try with record_type_config, fall back without it if column is missing
+  let sync: { id: string } | null = null;
+  let error: { message: string } | null = null;
+
+  const attempt1 = await supabase.from("sync_configs").insert(insertPayload).select("id").single();
+  if (attempt1.error?.message?.includes("record_type_config")) {
+    // Column doesn't exist yet — retry without it
+    const { record_type_config: _rtc, ...payloadWithout } = insertPayload;
+    void _rtc;
+    const attempt2 = await supabase.from("sync_configs").insert(payloadWithout).select("id").single();
+    sync = attempt2.data;
+    error = attempt2.error;
+  } else {
+    sync = attempt1.data;
+    error = attempt1.error;
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ sync }, { status: 201 });

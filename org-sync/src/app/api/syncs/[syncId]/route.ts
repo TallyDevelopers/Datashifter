@@ -39,7 +39,7 @@ export async function GET(
       id, name, direction, is_active, created_at,
       trigger_on_create, trigger_on_update, trigger_on_delete,
       source_object, target_object, filters, field_mappings,
-      max_retries, retry_on_partial, notify_on_failure, owner_config, record_type_config,
+      max_retries, retry_on_partial, notify_on_failure, owner_config,
       source_org_id, target_org_id,
       source_org:connected_orgs!source_org_id(id, label, is_sandbox, instance_url),
       target_org:connected_orgs!target_org_id(id, label, is_sandbox, instance_url)
@@ -48,7 +48,19 @@ export async function GET(
     .single();
 
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
-  return NextResponse.json({ sync });
+
+  // Fetch record_type_config separately — column may not exist yet in all environments
+  let record_type_config = { strategy: "none", target_record_type_id: null, target_record_type_name: null, mappings: [], reverse_target_record_type_id: null, reverse_target_record_type_name: null, reverse_mappings: [] };
+  try {
+    const { data: rtRow } = await supabase
+      .from("sync_configs")
+      .select("record_type_config")
+      .eq("id", syncId)
+      .single();
+    if (rtRow?.record_type_config) record_type_config = rtRow.record_type_config;
+  } catch { /* column not yet migrated — use default */ }
+
+  return NextResponse.json({ sync: { ...sync, record_type_config } });
 }
 
 export async function PATCH(
@@ -70,12 +82,16 @@ export async function PATCH(
     if (key in body) updates[key] = body[key];
   }
 
-  const { error: updateError } = await supabase
-    .from("sync_configs")
-    .update(updates)
-    .eq("id", syncId);
+  let updateResult = await supabase.from("sync_configs").update(updates).eq("id", syncId);
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+  // If record_type_config column doesn't exist yet, retry without it
+  if (updateResult.error?.message?.includes("record_type_config") && "record_type_config" in updates) {
+    const { record_type_config: _rtc, ...updatesWithout } = updates;
+    void _rtc;
+    updateResult = await supabase.from("sync_configs").update(updatesWithout).eq("id", syncId);
+  }
+
+  if (updateResult.error) return NextResponse.json({ error: updateResult.error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 

@@ -15,6 +15,77 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CpqReviewWarning } from "@/app/api/ai/cpq-review/route";
 
+// ─── Templates ────────────────────────────────────────────────────────────────
+
+interface MigrationTemplate {
+  id: string;
+  name: string;
+  description: string;
+  badge: string;
+  badgeColor: string;
+  steps: Array<{
+    label: string;
+    source_object: string;
+    target_object: string;
+  }>;
+  defaultName: string;
+}
+
+const TEMPLATES: MigrationTemplate[] = [
+  {
+    id: "scratch",
+    name: "Start from scratch",
+    description: "Define your own objects, order, and field mappings. For any migration — simple or complex.",
+    badge: "Custom",
+    badgeColor: "bg-muted text-muted-foreground border-border",
+    steps: [],
+    defaultName: "",
+  },
+  {
+    id: "cpq-full",
+    name: "Salesforce CPQ — Full Product & Pricing",
+    description: "Syncs the full CPQ product catalog in dependency order: Products → Pricebooks → Pricebook Entries → Options.",
+    badge: "CPQ",
+    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+    steps: [
+      { label: "Products", source_object: "Product2", target_object: "Product2" },
+      { label: "Pricebooks", source_object: "Pricebook2", target_object: "Pricebook2" },
+      { label: "Pricebook Entries", source_object: "PricebookEntry", target_object: "PricebookEntry" },
+      { label: "Product Options", source_object: "SBQQ__ProductOption__c", target_object: "SBQQ__ProductOption__c" },
+      { label: "Product Features", source_object: "SBQQ__ProductFeature__c", target_object: "SBQQ__ProductFeature__c" },
+    ],
+    defaultName: "CPQ Product & Pricing Migration",
+  },
+  {
+    id: "cpq-quotes",
+    name: "Salesforce CPQ — Quotes & Quote Lines",
+    description: "Migrates CPQ Quotes and their line items in the correct order. Requires Products & Pricebooks to already exist in the target org.",
+    badge: "CPQ",
+    badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
+    steps: [
+      { label: "Quotes", source_object: "SBQQ__Quote__c", target_object: "SBQQ__Quote__c" },
+      { label: "Quote Lines", source_object: "SBQQ__QuoteLine__c", target_object: "SBQQ__QuoteLine__c" },
+      { label: "Quote Line Groups", source_object: "SBQQ__QuoteLineGroup__c", target_object: "SBQQ__QuoteLineGroup__c" },
+    ],
+    defaultName: "CPQ Quotes Migration",
+  },
+  {
+    id: "rca-catalog",
+    name: "Revenue Cloud Advanced — Product Catalog",
+    description: "Migrates RCA product catalog objects in dependency order for Revenue Cloud Advanced orgs.",
+    badge: "RCA",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+    steps: [
+      { label: "Product Catalog", source_object: "ProductCatalog", target_object: "ProductCatalog" },
+      { label: "Product Categories", source_object: "ProductCategory", target_object: "ProductCategory" },
+      { label: "Products", source_object: "Product2", target_object: "Product2" },
+      { label: "Price Books", source_object: "Pricebook2", target_object: "Pricebook2" },
+      { label: "Price Book Entries", source_object: "PricebookEntry", target_object: "PricebookEntry" },
+    ],
+    defaultName: "RCA Product Catalog Migration",
+  },
+];
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ConnectedOrg {
@@ -105,6 +176,7 @@ const INTERVALS = [
 
 export default function NewCpqJobPage() {
   const router = useRouter();
+  const [templateChosen, setTemplateChosen] = useState(false);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [orgs, setOrgs] = useState<ConnectedOrg[]>([]);
@@ -222,10 +294,35 @@ export default function NewCpqJobPage() {
   }, [state]);
 
   // Save
+  const applyTemplate = useCallback((template: MigrationTemplate) => {
+    const templateSteps: JobStep[] = template.steps.map((s, i) => ({
+      id: crypto.randomUUID(),
+      step_order: i + 1,
+      label: s.label,
+      source_object: s.source_object,
+      source_object_label: s.source_object,
+      target_object: s.target_object,
+      target_object_label: s.target_object,
+      field_mappings: [],
+      filters: [],
+      expanded: false,
+      sourceFields: [],
+      targetFields: [],
+      fieldsLoaded: false,
+    }));
+
+    setState((prev) => ({
+      ...prev,
+      name: template.defaultName || prev.name,
+      steps: templateSteps,
+    }));
+    setTemplateChosen(true);
+  }, []);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/cpq", {
+      const res = await fetch("/api/migrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -250,7 +347,7 @@ export default function NewCpqJobPage() {
         setErrors([data.error ?? "Failed to save"]);
         return;
       }
-      router.push("/cpq");
+      router.push("/migrations");
     } catch (err) {
       setErrors([String(err)]);
     } finally {
@@ -302,18 +399,74 @@ export default function NewCpqJobPage() {
     }
   }
 
+  // ── Template picker (shown before builder) ─────────────────────────────────
+  if (!templateChosen) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-3xl px-6 py-8">
+          <div className="mb-8">
+            <Link href="/migrations" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Migrations
+            </Link>
+            <h1 className="text-2xl font-bold">New Migration</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Start from scratch or use a pre-built template for common Salesforce data models.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => applyTemplate(template)}
+                className="w-full text-left rounded-2xl border bg-card hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 transition-all p-5 group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 group-hover:gradient-bg transition-all">
+                    <GitBranch className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold">{template.name}</p>
+                      <Badge variant="outline" className={cn("text-[10px]", template.badgeColor)}>
+                        {template.badge}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{template.description}</p>
+                    {template.steps.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        {template.steps.map((s, i) => (
+                          <span key={s.source_object} className="flex items-center gap-1">
+                            <span className="text-[10px] bg-muted rounded px-1.5 py-0.5 font-mono">{s.source_object}</span>
+                            {i < template.steps.length - 1 && <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-5xl px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/cpq" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+          <Link href="/migrations" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
             <ArrowLeft className="h-4 w-4" />
-            Back to CPQ & RCA
+            Back to Migrations
           </Link>
-          <h1 className="text-2xl font-bold">New Integration Job</h1>
+          <h1 className="text-2xl font-bold">New Migration</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Define an ordered chain of objects to sync with dependency-aware execution.
+            Define an ordered chain of objects to migrate with dependency-aware execution.
           </p>
         </div>
 
@@ -453,7 +606,7 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
         {orgs.filter((o) => o.id !== exclude).map((org) => (
           <button
             key={org.id}
-            onClick={() => onChange(org.id)}
+            onClick={() => onChange(value === org.id ? "" : org.id)}
             className={cn(
               "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
               value === org.id ? "border-primary bg-primary/5" : "hover:border-primary/30 hover:bg-accent"
@@ -470,7 +623,30 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
           </button>
         ))}
         {orgs.filter((o) => o.id !== exclude).length === 0 && (
-          <p className="text-sm text-muted-foreground">No orgs available. <Link href="/orgs" className="text-primary underline">Connect one first.</Link></p>
+          <div className="rounded-xl border-2 border-dashed border-muted p-5 flex flex-col items-center gap-2 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {exclude
+                  ? "No other orgs available"
+                  : "No orgs connected yet"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {exclude
+                  ? "You need at least two connected orgs to set up a migration — one to read from and one to write to."
+                  : "Connect a Salesforce org first so you can select it here."}
+              </p>
+            </div>
+            <Link
+              href="/orgs"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Go to Connected Orgs
+            </Link>
+          </div>
         )}
       </div>
     </div>

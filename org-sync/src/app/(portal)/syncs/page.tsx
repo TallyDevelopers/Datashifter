@@ -348,7 +348,7 @@ export default function SyncsPage() {
             onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 100); }}
           >
             <MessageCircle className="h-4 w-4" />
-            Ask AI
+            Sync Assistant
           </Button>
           {/* Search */}
           <div className="relative">
@@ -372,9 +372,17 @@ export default function SyncsPage() {
         </div>
         <div className="flex items-center gap-3">
           {syncs.length > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>{activeCount} active</span>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 rounded-full border bg-green-50 border-green-200 px-2.5 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs font-semibold text-green-700">{activeCount} active</span>
+              </div>
+              {syncs.length - activeCount > 0 && (
+                <div className="flex items-center gap-1 rounded-full border bg-muted px-2.5 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                  <span className="text-xs font-medium text-muted-foreground">{syncs.length - activeCount} paused</span>
+                </div>
+              )}
             </div>
           )}
           {syncs.length >= maxSyncConfigs ? (
@@ -604,18 +612,24 @@ export default function SyncsPage() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[360px] min-h-[200px]">
             {chatMessages.length === 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground text-center py-2">Ask anything about your syncs</p>
+              <div className="space-y-3">
+                <div className="text-center py-2">
+                  <p className="text-xs font-semibold text-foreground">Your Sync Assistant</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    I know all your sync configs, connected orgs, and field mappings. Ask me anything — I&apos;ll give you a straight answer.
+                  </p>
+                </div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1">Try asking</p>
                 {[
-                  "Are any of my syncs likely to create duplicates?",
-                  "What happens with my Account sync — is it bidirectional?",
-                  "Why might my last sync have partial failures?",
-                  "Are there any issues with my current field mappings?",
+                  "Could any of my syncs create duplicate records?",
+                  "Which of my syncs are bidirectional and what do they do?",
+                  "Are there any field mapping problems I should know about?",
+                  "Walk me through what my Account sync actually does step by step.",
                 ].map((q) => (
                   <button
                     key={q}
                     onClick={() => handleChatSend(q)}
-                    className="w-full text-left rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors"
+                    className="w-full text-left rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-primary hover:bg-primary/10 transition-colors"
                   >
                     {q}
                   </button>

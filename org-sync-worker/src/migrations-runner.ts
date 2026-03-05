@@ -1,5 +1,5 @@
 /**
- * CPQ/RCA Integration Job Runner
+ * Migration Integration Job Runner
  *
  * Executes integration jobs sequentially — one object step at a time, in dependency order.
  * If a step fails critically, all subsequent steps are skipped to prevent broken foreign keys.
@@ -58,7 +58,7 @@ interface CpqJob {
 
 // ─── Main exports ──────────────────────────────────────────────────────────────
 
-export async function fetchActiveCpqJobs(): Promise<CpqJob[]> {
+export async function fetchActiveMigrationJobs(): Promise<CpqJob[]> {
   const supabase = db();
   const { data, error } = await supabase
     .from("cpq_jobs")
@@ -72,13 +72,13 @@ export async function fetchActiveCpqJobs(): Promise<CpqJob[]> {
     .eq("is_active", true);
 
   if (error) {
-    console.error("[cpq-runner] Failed to fetch CPQ jobs:", error.message);
+    console.error("[migrations-runner] Failed to fetch Migration jobs:", error.message);
     return [];
   }
   return (data as unknown as CpqJob[]) ?? [];
 }
 
-export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
+export async function runMigrationJob(job: CpqJob, intervalMs: number): Promise<{
   jobId: string;
   runsCompleted: number;
   stepsFailed: number;
@@ -87,7 +87,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
   const steps = [...(job.cpq_job_objects ?? [])].sort((a, b) => a.step_order - b.step_order);
 
   if (steps.length === 0) {
-    console.log(`[cpq-runner] Job "${job.name}" has no steps — skipping.`);
+    console.log(`[migrations-runner] Job "${job.name}" has no steps — skipping.`);
     return { jobId: job.id, runsCompleted: 0, stepsFailed: 0 };
   }
 
@@ -104,14 +104,14 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
 
   if (pendingRun) {
     runId = pendingRun.id;
-    console.log(`[cpq-runner] Resuming manual run ${runId} for job "${job.name}"`);
+    console.log(`[migrations-runner] Resuming manual run ${runId} for job "${job.name}"`);
   } else {
     // Determine if interval has elapsed
     if (job.interval_minutes > 0 && job.last_run_at) {
       const elapsed = Date.now() - new Date(job.last_run_at).getTime();
       const needed = job.interval_minutes * 60 * 1000;
       if (elapsed < needed) {
-        console.log(`[cpq-runner] Job "${job.name}" interval not elapsed — skipping.`);
+        console.log(`[migrations-runner] Job "${job.name}" interval not elapsed — skipping.`);
         return { jobId: job.id, runsCompleted: 0, stepsFailed: 0 };
       }
     }
@@ -123,7 +123,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
       .single();
 
     if (runError || !newRun) {
-      console.error(`[cpq-runner] Failed to create run for job "${job.name}":`, runError?.message);
+      console.error(`[migrations-runner] Failed to create run for job "${job.name}":`, runError?.message);
       return { jobId: job.id, runsCompleted: 0, stepsFailed: 1 };
     }
     runId = newRun.id;
@@ -138,7 +138,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
       getValidAccessToken(job.target_org),
     ]);
   } catch (err) {
-    console.error(`[cpq-runner] Token refresh failed for job "${job.name}":`, err);
+    console.error(`[migrations-runner] Token refresh failed for job "${job.name}":`, err);
     await supabase.from("cpq_job_runs").update({ status: "failed", completed_at: new Date().toISOString() }).eq("id", runId);
     return { jobId: job.id, runsCompleted: 0, stepsFailed: 1 };
   }
@@ -158,7 +158,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
 
     if (criticalFailed) {
       // Skip this step — a prior step failed
-      console.log(`[cpq-runner] Skipping step ${step.step_order} (${stepLabel}) — prior step failed.`);
+      console.log(`[migrations-runner] Skipping step ${step.step_order} (${stepLabel}) — prior step failed.`);
       await supabase.from("cpq_job_run_steps").insert({
         run_id: runId,
         job_object_id: step.id,
@@ -174,7 +174,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
       continue;
     }
 
-    console.log(`[cpq-runner] Running step ${step.step_order}: ${stepLabel} (${step.source_object} → ${step.target_object})`);
+    console.log(`[migrations-runner] Running step ${step.step_order}: ${stepLabel} (${step.source_object} → ${step.target_object})`);
 
     const { data: stepRow } = await supabase
       .from("cpq_job_run_steps")
@@ -217,15 +217,15 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
         criticalFailed = true;
         overallStatus = "partial";
         stepsFailed++;
-        console.error(`[cpq-runner] Step ${step.step_order} failed — ${result.failed} records failed. Stopping chain.`);
+        console.error(`[migrations-runner] Step ${step.step_order} failed — ${result.failed} records failed. Stopping chain.`);
       } else if (stepStatus === "partial") {
         overallStatus = "partial";
-        console.warn(`[cpq-runner] Step ${step.step_order} partial — ${result.succeeded}/${result.queried} succeeded.`);
+        console.warn(`[migrations-runner] Step ${step.step_order} partial — ${result.succeeded}/${result.queried} succeeded.`);
       } else {
-        console.log(`[cpq-runner] Step ${step.step_order} complete — ${result.succeeded} records synced.`);
+        console.log(`[migrations-runner] Step ${step.step_order} complete — ${result.succeeded} records synced.`);
       }
     } catch (err) {
-      console.error(`[cpq-runner] Step ${step.step_order} threw:`, err);
+      console.error(`[migrations-runner] Step ${step.step_order} threw:`, err);
       criticalFailed = true;
       overallStatus = "partial";
       stepsFailed++;
@@ -250,7 +250,7 @@ export async function runCpqJob(job: CpqJob, intervalMs: number): Promise<{
     last_run_at: new Date().toISOString(),
   }).eq("id", job.id);
 
-  console.log(`[cpq-runner] Job "${job.name}" finished — ${overallStatus}. Steps failed: ${stepsFailed}/${steps.length}`);
+  console.log(`[migrations-runner] Job "${job.name}" finished — ${overallStatus}. Steps failed: ${stepsFailed}/${steps.length}`);
   return { jobId: job.id, runsCompleted: 1, stepsFailed };
 }
 
@@ -266,7 +266,7 @@ async function runCpqStep(
 ): Promise<{ queried: number; succeeded: number; failed: number; errors: Array<{ sourceRecordId: string; errorMessage: string; errorCode: string }> }> {
   const fieldMappings = step.field_mappings ?? [];
   if (fieldMappings.length === 0) {
-    console.log(`[cpq-runner] Step "${step.source_object}" has no field mappings — skipping.`);
+    console.log(`[migrations-runner] Step "${step.source_object}" has no field mappings — skipping.`);
     return { queried: 0, succeeded: 0, failed: 0, errors: [] };
   }
 
