@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Building2, ArrowLeftRight, Activity, CheckCircle2, XCircle,
   Clock, ArrowRight, Plus, RefreshCw, Loader2, AlertCircle,
-  LifeBuoy, Zap, Sparkles, X, TrendingDown, BarChart3,
+  LifeBuoy, Zap, Sparkles, X, TrendingDown, BarChart3, GitBranch,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,23 +13,32 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type LogStatus = "running" | "success" | "partial" | "failed";
+type ActivityStatus = "running" | "success" | "partial" | "failed";
 
-interface SyncLog {
+interface ActivityItem {
   id: string;
-  status: LogStatus;
+  activity_type: "sync" | "migration";
+  status: ActivityStatus;
   records_processed: number;
   records_succeeded: number;
   records_failed: number;
   started_at: string;
   completed_at: string | null;
-  sync_config: {
+  sync_config?: {
     id: string;
     name: string;
     source_object: string;
+    target_object: string;
     source_org: { label: string };
     target_org: { label: string };
   };
+  job?: {
+    id: string;
+    name: string;
+    source_org: { label: string };
+    target_org: { label: string };
+  };
+  triggered_by?: "schedule" | "manual";
 }
 
 interface ActiveSync {
@@ -41,22 +50,33 @@ interface ActiveSync {
   target_org: { label: string };
 }
 
+interface ActiveMigration {
+  id: string;
+  name: string;
+  interval_minutes: number;
+  source_org: { label: string };
+  target_org: { label: string };
+}
+
 interface DashboardData {
   customer: { name: string; plan_tier: string };
   stats: {
     orgCount: number;
     activeSyncCount: number;
     totalSyncCount: number;
+    activeMigrationCount: number;
+    totalMigrationCount: number;
     recordsProcessed: number;
     successRate: number | null;
     openTickets: number;
   };
-  recentLogs: SyncLog[];
+  recentActivity: ActivityItem[];
   activeSyncs: ActiveSync[];
+  activeMigrations: ActiveMigration[];
 }
 
 // ─── Mini sparkline: last-7-days success vs fail bars ─────────────────────────
-function ActivitySparkline({ logs }: { logs: SyncLog[] }) {
+function ActivitySparkline({ logs }: { logs: ActivityItem[] }) {
   // Group by day (last 7 days)
   const days: { label: string; succeeded: number; failed: number }[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -112,14 +132,14 @@ function ActivitySparkline({ logs }: { logs: SyncLog[] }) {
   );
 }
 
-const STATUS_CONFIG: Record<LogStatus, { label: string; icon: React.ElementType; className: string }> = {
+const STATUS_CONFIG: Record<ActivityStatus, { label: string; icon: React.ElementType; className: string }> = {
   running: { label: "Running", icon: Loader2, className: "border-blue-200 bg-blue-50 text-blue-700" },
   success: { label: "Success", icon: CheckCircle2, className: "border-green-200 bg-green-50 text-green-700" },
   partial: { label: "Partial", icon: AlertCircle, className: "border-yellow-200 bg-yellow-50 text-yellow-700" },
   failed: { label: "Failed", icon: XCircle, className: "border-red-200 bg-red-50 text-red-700" },
 };
 
-function StatusBadge({ status }: { status: LogStatus }) {
+function StatusBadge({ status }: { status: ActivityStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.failed;
   const Icon = cfg.icon;
   return (
@@ -204,8 +224,8 @@ export default function DashboardPage() {
     );
   }
 
-  const { stats, recentLogs, activeSyncs } = data;
-  const hasActivity = recentLogs.length > 0;
+  const { stats, recentActivity, activeSyncs, activeMigrations } = data;
+  const hasActivity = recentActivity.length > 0;
   const hasOrgs = stats.orgCount > 0;
   const hasSyncs = stats.totalSyncCount > 0;
 
@@ -220,7 +240,7 @@ export default function DashboardPage() {
       iconColor: "text-blue-600",
     },
     {
-      label: "Active Syncs",
+      label: "Live Syncs",
       value: stats.activeSyncCount,
       sub: stats.totalSyncCount > 0 ? `${stats.totalSyncCount} total configured` : "None configured",
       icon: ArrowLeftRight,
@@ -229,9 +249,18 @@ export default function DashboardPage() {
       iconColor: "text-purple-600",
     },
     {
-      label: "Records Synced",
+      label: "Migrations",
+      value: stats.activeMigrationCount,
+      sub: stats.totalMigrationCount > 0 ? `${stats.totalMigrationCount} total configured` : "None configured",
+      icon: GitBranch,
+      href: "/migrations",
+      iconBg: "bg-indigo-50",
+      iconColor: "text-indigo-600",
+    },
+    {
+      label: "Records Moved",
       value: stats.recordsProcessed > 0 ? stats.recordsProcessed.toLocaleString() : "0",
-      sub: "Last 30 days",
+      sub: "Last 30 days (syncs + migrations)",
       icon: Activity,
       href: "/logs",
       iconBg: "bg-green-50",
@@ -326,7 +355,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {statCards.map((stat) => (
           <Link key={stat.label} href={stat.href}>
             <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
@@ -349,7 +378,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Recent Sync Activity</CardTitle>
+            <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
             {hasActivity && (
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/logs">
@@ -362,50 +391,68 @@ export default function DashboardPage() {
             {!hasActivity ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
                 <RefreshCw className="h-10 w-10 text-muted-foreground/30" />
-                <h3 className="mt-4 text-sm font-semibold">No sync activity yet</h3>
+                <h3 className="mt-4 text-sm font-semibold">No activity yet</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {!hasOrgs
                     ? "Start by connecting a Salesforce org."
                     : !hasSyncs
-                    ? "Create a sync config to start syncing data."
-                    : "Activate a sync config to begin."}
+                    ? "Create a Live Sync or Migration to start moving data."
+                    : "Activate a sync or migration to begin."}
                 </p>
                 <Button size="sm" className="mt-4 gradient-bg border-0 text-white hover:opacity-90" asChild>
                   <Link href={!hasOrgs ? "/orgs" : "/syncs"}>
                     <Plus className="mr-2 h-3.5 w-3.5" />
-                    {!hasOrgs ? "Connect an Org" : "Go to Syncs"}
+                    {!hasOrgs ? "Connect an Org" : "Get Started"}
                   </Link>
                 </Button>
               </div>
             ) : (
               <div className="divide-y">
-                {recentLogs.map((log) => (
-                  <Link key={log.id} href={`/logs/${log.id}`}>
-                    <div className="flex items-center justify-between gap-4 py-3 hover:bg-muted/40 -mx-2 px-2 rounded transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <StatusBadge status={log.status} />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{log.sync_config?.name}</p>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                            <span className="truncate">{log.sync_config?.source_org?.label}</span>
-                            <ArrowRight className="h-2.5 w-2.5 shrink-0" />
-                            <span className="truncate">{log.sync_config?.target_org?.label}</span>
+                {recentActivity.map((item) => {
+                  const isMigration = item.activity_type === "migration";
+                  const name = isMigration ? item.job?.name : item.sync_config?.name;
+                  const sourceOrg = isMigration ? item.job?.source_org?.label : item.sync_config?.source_org?.label;
+                  const targetOrg = isMigration ? item.job?.target_org?.label : item.sync_config?.target_org?.label;
+                  const href = isMigration ? `/migrations/${item.job?.id}` : `/logs/${item.id}`;
+
+                  return (
+                    <Link key={item.id} href={href}>
+                      <div className="flex items-center justify-between gap-4 py-3 hover:bg-muted/40 -mx-2 px-2 rounded transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <StatusBadge status={item.status} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{name}</p>
+                              <span className={cn(
+                                "shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide border",
+                                isMigration
+                                  ? "bg-indigo-50 text-indigo-600 border-indigo-200"
+                                  : "bg-purple-50 text-purple-600 border-purple-200"
+                              )}>
+                                {isMigration ? "Migration" : "Live Sync"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                              <span className="truncate">{sourceOrg}</span>
+                              <ArrowRight className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate">{targetOrg}</span>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm tabular-nums">
+                            <span className="text-green-600">{item.records_succeeded}</span>
+                            <span className="text-muted-foreground">/{item.records_processed}</span>
+                            {item.records_failed > 0 && (
+                              <span className="text-red-500 ml-1">({item.records_failed} failed)</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{formatRelative(item.started_at)}</p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm tabular-nums">
-                          <span className="text-green-600">{log.records_succeeded}</span>
-                          <span className="text-muted-foreground">/{log.records_processed}</span>
-                          {log.records_failed > 0 && (
-                            <span className="text-red-500 ml-1">({log.records_failed} failed)</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{formatRelative(log.started_at)}</p>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -423,7 +470,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <ActivitySparkline logs={recentLogs} />
+                <ActivitySparkline logs={recentActivity} />
                 <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <div className="h-2 w-2 rounded-sm bg-primary/40" />
@@ -438,35 +485,48 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Active Syncs health strip */}
-          {activeSyncs.length > 0 && (
+          {/* Active data movers — syncs + migrations */}
+          {(activeSyncs.length > 0 || (activeMigrations ?? []).length > 0) && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Zap className="h-4 w-4 text-primary" />
-                  Active Syncs
+                  Running Now
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
-                {activeSyncs.slice(0, 4).map((sync) => (
+                {activeSyncs.slice(0, 3).map((sync) => (
                   <Link key={sync.id} href="/syncs">
                     <div className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer">
                       <div className="h-2 w-2 rounded-full bg-green-500 shrink-0 animate-pulse" />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate">{sync.name}</p>
                         <p className="text-[11px] text-muted-foreground font-mono truncate">
                           {sync.source_object} → {sync.target_object}
                         </p>
                       </div>
+                      <span className="shrink-0 text-[9px] font-semibold text-purple-600 bg-purple-50 border border-purple-200 rounded-full px-1.5 py-0.5">Sync</span>
                     </div>
                   </Link>
                 ))}
-                {activeSyncs.length > 4 && (
-                  <Link href="/syncs">
-                    <p className="text-xs text-muted-foreground text-center pt-1 hover:text-foreground transition-colors">
-                      +{activeSyncs.length - 4} more
-                    </p>
+                {(activeMigrations ?? []).slice(0, 3).map((migration) => (
+                  <Link key={migration.id} href={`/migrations/${migration.id}`}>
+                    <div className="flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="h-2 w-2 rounded-full bg-indigo-500 shrink-0 animate-pulse" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate">{migration.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {migration.source_org?.label} → {migration.target_org?.label}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-1.5 py-0.5">Migration</span>
+                    </div>
                   </Link>
+                ))}
+                {(activeSyncs.length + (activeMigrations ?? []).length) > 6 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    +{activeSyncs.length + (activeMigrations ?? []).length - 6} more active
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -487,7 +547,13 @@ export default function DashboardPage() {
               <Button variant="outline" className="w-full justify-start" size="sm" asChild>
                 <Link href="/syncs/new">
                   <ArrowLeftRight className="mr-2 h-4 w-4 text-primary" />
-                  Create a Sync Config
+                  New Live Sync
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-full justify-start" size="sm" asChild>
+                <Link href="/migrations/new">
+                  <GitBranch className="mr-2 h-4 w-4 text-primary" />
+                  New Migration
                 </Link>
               </Button>
               <Button variant="outline" className="w-full justify-start" size="sm" asChild>

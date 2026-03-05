@@ -28,7 +28,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orgs", label: "Connected Orgs", icon: Building2 },
   { href: "/syncs", label: "Sync Configs", icon: ArrowLeftRight },
-  { href: "/cpq", label: "CPQ & RCA Jobs", icon: GitBranch },
+  { href: "/migrations", label: "Migrations", icon: GitBranch },
   { href: "/logs", label: "Sync Logs", icon: ScrollText },
   { href: "/support", label: "Support", icon: LifeBuoy },
   { href: "/help", label: "Help & Docs", icon: BookOpen },
