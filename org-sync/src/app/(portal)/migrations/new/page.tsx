@@ -7,7 +7,7 @@ import {
   ArrowLeft, Building2, List, GitBranch, Columns, Filter,
   Clock, Sparkles, FileText, Plus, Trash2, GripVertical,
   ArrowRight, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
-  Info, Loader2, ArrowUpDown,
+  Info, Loader2, ArrowUpDown, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -357,7 +357,7 @@ export default function NewCpqJobPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 1: return !!state.source_org_id && !!state.target_org_id && state.source_org_id !== state.target_org_id && !!state.name;
+      case 1: return !!state.source_org_id && !!state.target_org_id && !!state.name;
       case 2: return state.steps.length > 0;
       case 3: return state.steps.length > 0;
       case 4: return true;
@@ -584,7 +584,12 @@ function StepOrgs({ state, setState, orgs }: {
           />
         </div>
         {state.source_org_id && state.target_org_id && state.source_org_id === state.target_org_id && (
-          <p className="text-sm text-destructive">Source and target org must be different.</p>
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              Same org selected for source and target. Records will be read and written to the same org — useful for testing.
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -603,41 +608,14 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
       <div className="space-y-2">
-        {orgs.filter((o) => o.id !== exclude).map((org) => (
-          <button
-            key={org.id}
-            onClick={() => onChange(value === org.id ? "" : org.id)}
-            className={cn(
-              "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
-              value === org.id ? "border-primary bg-primary/5" : "hover:border-primary/30 hover:bg-accent"
-            )}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-bg">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{org.label}</p>
-              <p className="text-xs text-muted-foreground">{org.is_sandbox ? "Sandbox" : "Production"}</p>
-            </div>
-            {value === org.id && <CheckCircle2 className="h-4 w-4 text-primary ml-auto shrink-0" />}
-          </button>
-        ))}
-        {orgs.filter((o) => o.id !== exclude).length === 0 && (
+        {orgs.length === 0 && (
           <div className="rounded-xl border-2 border-dashed border-muted p-5 flex flex-col items-center gap-2 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
               <Building2 className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm font-medium">
-                {exclude
-                  ? "No other orgs available"
-                  : "No orgs connected yet"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {exclude
-                  ? "You need at least two connected orgs to set up a migration — one to read from and one to write to."
-                  : "Connect a Salesforce org first so you can select it here."}
-              </p>
+              <p className="text-sm font-medium">No orgs connected yet</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Connect a Salesforce org first.</p>
             </div>
             <Link
               href="/orgs"
@@ -648,6 +626,28 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
             </Link>
           </div>
         )}
+        {orgs.map((org) => {
+          const isSelected = value === org.id;
+          return (
+            <button
+              key={org.id}
+              onClick={() => onChange(isSelected ? "" : org.id)}
+              className={cn(
+                "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                isSelected ? "border-primary bg-primary/5" : "hover:border-primary/30 hover:bg-accent"
+              )}
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-bg">
+                <Building2 className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{org.label}</p>
+                <p className="text-xs text-muted-foreground">{org.is_sandbox ? "Sandbox" : "Production"}</p>
+              </div>
+              {isSelected && <CheckCircle2 className="h-4 w-4 text-primary ml-auto shrink-0" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
