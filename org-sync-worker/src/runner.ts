@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { queryRecords, upsertByExternalId } from "./salesforce.js";
 import { createSyncLog, finalizeSyncLog, writeRecordErrors } from "./logger.js";
-import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, OwnerConfig, OwnerUser, RecordTypeConfig } from "./types.js";
+import type { SyncConfig, SyncFilter, SalesforceRecord, RunResult, OwnerConfig, OwnerUser, RecordTypeConfig, ConnectedOrg } from "./types.js";
 
 // ─── Round-robin counters (per sync config + direction, in-memory) ────────────
 // Key: `${syncConfigId}:forward` or `${syncConfigId}:reverse`
@@ -394,6 +394,7 @@ export async function runAutomaticRetries(): Promise<void> {
     id: string;
     sync_config_id: string;
     retry_count: number;
+    direction: string;
     sync_config: {
       id: string;
       max_retries: number;

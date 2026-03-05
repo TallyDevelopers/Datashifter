@@ -86,6 +86,9 @@ export interface SyncConfig {
   is_active: boolean;
   source_org: ConnectedOrg;
   target_org: ConnectedOrg;
+  max_retries?: number;
+  retry_on_partial?: boolean;
+  notify_on_failure?: boolean;
 }
 
 export interface SyncLogRow {
