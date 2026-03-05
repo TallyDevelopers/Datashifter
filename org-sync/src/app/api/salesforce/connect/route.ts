@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const env = (searchParams.get("env") ?? "production") as SalesforceEnv;
+  const myDomain = searchParams.get("mydomain") ?? undefined;
 
   const statePayload = { userId: user.id, env, ts: Date.now() };
   const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   const codeChallenge = generateCodeChallenge(codeVerifier);
 
   try {
-    const authUrl = buildAuthUrl(state, env, codeChallenge);
+    const authUrl = buildAuthUrl(state, env, codeChallenge, myDomain);
     console.log("SF AUTH URL:", authUrl);
 
     // Store verifier in a short-lived HttpOnly cookie so the callback can retrieve it

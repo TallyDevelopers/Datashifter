@@ -19,16 +19,30 @@ export function generateCodeChallenge(verifier: string): string {
   return createHash("sha256").update(verifier).digest("base64url");
 }
 
+/** Normalize a My Domain URL to just the base origin (no trailing slash). */
+export function normalizeMyDomain(myDomain: string): string {
+  try {
+    const url = new URL(myDomain.startsWith("http") ? myDomain : `https://${myDomain}`);
+    return url.origin;
+  } catch {
+    return myDomain;
+  }
+}
+
 export function buildAuthUrl(
   state: string,
   env: SalesforceEnv = "production",
-  codeChallenge: string
+  codeChallenge: string,
+  myDomain?: string
 ): string {
-  const clientId = process.env.SALESFORCE_CLIENT_ID;
-  const callbackUrl = process.env.SALESFORCE_CALLBACK_URL;
+  const clientId = process.env.SALESFORCE_CLIENT_ID?.trim();
+  const callbackUrl = process.env.SALESFORCE_CALLBACK_URL?.trim();
   if (!clientId || !callbackUrl) {
     throw new Error("SALESFORCE_CLIENT_ID or SALESFORCE_CALLBACK_URL not set");
   }
+
+  // Use My Domain URL if provided (required for External Client Apps)
+  const baseUrl = myDomain ? normalizeMyDomain(myDomain) : SF_LOGIN_URLS[env];
 
   const params = new URLSearchParams({
     response_type: "code",
@@ -41,7 +55,7 @@ export function buildAuthUrl(
     code_challenge_method: "S256",
   });
 
-  return `${SF_LOGIN_URLS[env]}/services/oauth2/authorize?${params.toString()}`;
+  return `${baseUrl}/services/oauth2/authorize?${params.toString()}`;
 }
 
 export interface SalesforceTokenResponse {

@@ -205,6 +205,7 @@ function OrgsPageContent() {
   const [orgs, setOrgs] = useState<ConnectedOrg[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [myDomain, setMyDomain] = useState("");
   const [disconnectOrg, setDisconnectOrg] = useState<ConnectedOrg | null>(null);
   const [renameOrg, setRenameOrg] = useState<ConnectedOrg | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -336,7 +337,8 @@ function OrgsPageContent() {
 
   function handleReconnect(org: ConnectedOrg) {
     const env = org.is_sandbox ? "sandbox" : "production";
-    window.location.href = `/api/salesforce/connect?env=${env}`;
+    const myDomain = org.instance_url;
+    window.location.href = `/api/salesforce/connect?env=${env}&mydomain=${encodeURIComponent(myDomain)}`;
   }
 
   return (
@@ -396,44 +398,63 @@ function OrgsPageContent() {
       )}
 
       {/* Connect Org Dialog */}
-      <Dialog open={connectOpen} onOpenChange={setConnectOpen}>
+      <Dialog open={connectOpen} onOpenChange={(open) => { setConnectOpen(open); if (!open) setMyDomain(""); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Connect a Salesforce Org</DialogTitle>
             <DialogDescription>
-              You&apos;ll be redirected to Salesforce to log in and authorize
-              access. No setup required on your end.
+              Enter your org&apos;s My Domain URL, then choose your org type.
+              You&apos;ll be redirected to Salesforce to log in and authorize.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2 space-y-3">
-            <a href="/api/salesforce/connect?env=production" className="block">
-              <div className="group flex items-center gap-4 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5 cursor-pointer">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-bg">
-                  <Building2 className="h-5 w-5 text-white" />
+          <div className="mt-2 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="mydomain-input">My Domain URL</Label>
+              <Input
+                id="mydomain-input"
+                value={myDomain}
+                onChange={(e) => setMyDomain(e.target.value)}
+                placeholder="https://yourcompany.my.salesforce.com"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Find this in Salesforce Setup → My Domain, or just copy your browser URL when logged into Salesforce.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <a
+                href={`/api/salesforce/connect?env=production${myDomain ? `&mydomain=${encodeURIComponent(myDomain)}` : ""}`}
+                className="block"
+                onClick={(e) => { if (!myDomain.trim()) { e.preventDefault(); toast.error("Please enter your My Domain URL"); } }}
+              >
+                <div className="group flex items-center gap-4 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5 cursor-pointer">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-bg">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Production Org</p>
+                    <p className="text-sm text-muted-foreground">login.salesforce.com</p>
+                  </div>
+                  <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
                 </div>
-                <div>
-                  <p className="font-medium">Production Org</p>
-                  <p className="text-sm text-muted-foreground">
-                    login.salesforce.com
-                  </p>
+              </a>
+              <a
+                href={`/api/salesforce/connect?env=sandbox${myDomain ? `&mydomain=${encodeURIComponent(myDomain)}` : ""}`}
+                className="block"
+                onClick={(e) => { if (!myDomain.trim()) { e.preventDefault(); toast.error("Please enter your My Domain URL"); } }}
+              >
+                <div className="group flex items-center gap-4 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5 cursor-pointer">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Sandbox Org</p>
+                    <p className="text-sm text-muted-foreground">test.salesforce.com</p>
+                  </div>
+                  <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
                 </div>
-                <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
-              </div>
-            </a>
-            <a href="/api/salesforce/connect?env=sandbox" className="block">
-              <div className="group flex items-center gap-4 rounded-xl border p-4 transition-all hover:border-primary hover:bg-primary/5 cursor-pointer">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium">Sandbox Org</p>
-                  <p className="text-sm text-muted-foreground">
-                    test.salesforce.com
-                  </p>
-                </div>
-                <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
-              </div>
-            </a>
+              </a>
+            </div>
           </div>
           <p className="mt-2 text-center text-xs text-muted-foreground">
             Your Salesforce credentials are never stored by OrgSync.
