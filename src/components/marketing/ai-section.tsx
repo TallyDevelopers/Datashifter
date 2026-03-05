@@ -9,7 +9,7 @@ const aiFeatures = [
     title: "Test before anything goes live",
     tagline: "No more crossing your fingers.",
     description:
-      "Before you activate a sync, click \"Run Test.\" OrgSync uses a real record from your org, runs it through your configuration, and tells you if everything would work — or exactly what would break. Nothing gets written to your other org.",
+      "Before you activate a sync, click \"Run Test.\" SwiftPort uses a real record from your org, runs it through your configuration, and tells you if everything would work — or exactly what would break. Nothing gets written to your other org.",
     bullets: [
       "Uses a real record from your org",
       "Checks permissions and field compatibility",
@@ -37,7 +37,7 @@ const aiFeatures = [
     title: "Understand errors without being a developer",
     tagline: "Plain English. Every time.",
     description:
-      "When a record fails to sync, Salesforce gives you a cryptic error code. OrgSync translates it into plain English — what went wrong, why, and what you should do to fix it. No Googling, no guessing.",
+      "When a record fails to sync, Salesforce gives you a cryptic error code. SwiftPort translates it into plain English — what went wrong, why, and what you should do to fix it. No Googling, no guessing.",
     bullets: [
       "\"This field is required but wasn't mapped\"",
       "\"You don't have permission to write to this field\"",
@@ -51,10 +51,10 @@ const aiFeatures = [
     title: "Set up a sync just by describing it",
     tagline: "If you can say it, we can build it.",
     description:
-      "Not sure where to start? Just type what you want — \"sync Accounts from Production to Sandbox when they're created or updated\" — and OrgSync pre-fills the entire setup for you. You review it, adjust if needed, and save.",
+      "Not sure where to start? Just type what you want — \"sync Accounts from Production to Sandbox when they're created or updated\" — and SwiftPort pre-fills the entire setup for you. You review it, adjust if needed, and save.",
     bullets: [
       "Type in plain English",
-      "OrgSync fills in the full configuration",
+      "SwiftPort fills in the full configuration",
       "Review and adjust before saving",
       "Works for any object or trigger",
       "Takes 30 seconds",
@@ -65,7 +65,7 @@ const aiFeatures = [
     title: "Know the moment something stops working",
     tagline: "Problems caught before you have to ask.",
     description:
-      "OrgSync watches your sync activity over time and tells you if something looks wrong — a sync that normally moves hundreds of records suddenly moving none, a drop in how many records are succeeding, or a sync that's been inactive when it shouldn't be.",
+      "SwiftPort watches your sync activity over time and tells you if something looks wrong — a sync that normally moves hundreds of records suddenly moving none, a drop in how many records are succeeding, or a sync that's been inactive when it shouldn't be.",
     bullets: [
       "Compares today's activity to your normal baseline",
       "Alerts you when a sync goes quiet",
@@ -96,7 +96,7 @@ export function AISection() {
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
             Syncing data between Salesforce orgs has a hundred ways to go wrong quietly.
-            OrgSync uses AI to catch them before they become problems — and explain them in plain English when they do.
+            SwiftPort uses AI to catch them before they become problems — and explain them in plain English when they do.
           </p>
         </FadeIn>
 

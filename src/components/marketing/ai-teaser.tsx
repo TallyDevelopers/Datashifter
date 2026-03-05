@@ -41,7 +41,7 @@ export function AITeaser() {
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
             Syncing data between orgs has a hundred ways to go wrong quietly.
-            OrgSync catches them before they become your problem.
+            SwiftPort catches them before they become your problem.
           </p>
         </FadeIn>
 

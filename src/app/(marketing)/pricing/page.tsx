@@ -13,13 +13,13 @@ export const metadata: Metadata = {
     "Salesforce SaaS pricing",
   ],
   openGraph: {
-    title: "OrgSync Pricing — Sync Salesforce Orgs Starting Free",
+    title: "SwiftPort Pricing — Sync Salesforce Orgs Starting Free",
     description:
       "Start syncing your Salesforce orgs for free. Upgrade to Professional for bidirectional sync, smart filters, and unlimited configurations.",
-    url: "https://orgsync.io/pricing",
+    url: "https://swiftport.io/pricing",
   },
   alternates: {
-    canonical: "https://orgsync.io/pricing",
+    canonical: "https://swiftport.io/pricing",
   },
 };
 

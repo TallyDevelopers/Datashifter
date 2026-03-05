@@ -56,7 +56,7 @@ export function Sidebar() {
             <Zap className="h-4 w-4 text-white" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-bold tracking-tight gradient-text">OrgSync</span>
+            <span className="text-lg font-bold tracking-tight gradient-text">SwiftPort</span>
           )}
         </Link>
       </div>

@@ -13,7 +13,7 @@ const pillars = [
     title: "Zero record data storage",
     subtitle: "Your data never touches our database",
     description:
-      "When OrgSync syncs a record, it reads the record from your source org via Salesforce API, maps the fields in memory, and immediately writes it to your target org via Salesforce API. Nothing is persisted on our infrastructure. Not a field value, not a record ID mapping, not a name. We store only sync configuration (which fields to map), execution logs (timestamps, record counts, error codes), and encrypted OAuth tokens.",
+      "When SwiftPort syncs a record, it reads the record from your source org via Salesforce API, maps the fields in memory, and immediately writes it to your target org via Salesforce API. Nothing is persisted on our infrastructure. Not a field value, not a record ID mapping, not a name. We store only sync configuration (which fields to map), execution logs (timestamps, record counts, error codes), and encrypted OAuth tokens.",
     badge: "Architecture",
   },
   {
@@ -21,7 +21,7 @@ const pillars = [
     title: "Direct org-to-org transfer",
     subtitle: "We orchestrate — we never hold",
     description:
-      "Most integration platforms act as a data broker — your records flow into their platform, get transformed, then flow back out. That means your customer data lives on a third-party server momentarily. OrgSync's architecture is different: our worker reads a batch of records from Salesforce, maps them in memory, and sends them directly to the target org in the same process — there is no intermediate storage step.",
+      "Most integration platforms act as a data broker — your records flow into their platform, get transformed, then flow back out. That means your customer data lives on a third-party server momentarily. SwiftPort's architecture is different: our worker reads a batch of records from Salesforce, maps them in memory, and sends them directly to the target org in the same process — there is no intermediate storage step.",
     badge: "Architecture",
   },
   {
@@ -37,7 +37,7 @@ const pillars = [
     title: "OAuth 2.0 Web Server Flow with PKCE",
     subtitle: "Your password never comes near us",
     description:
-      "You connect your Salesforce org through the standard OAuth 2.0 authorization flow — the same flow used by Salesforce's own tools. You log in directly on Salesforce's login page, not ours. OrgSync never sees your username or password. We receive a scoped access token that you can revoke at any time from within Salesforce. PKCE (Proof Key for Code Exchange) is enforced on every authorization request, protecting against authorization code interception attacks.",
+      "You connect your Salesforce org through the standard OAuth 2.0 authorization flow — the same flow used by Salesforce's own tools. You log in directly on Salesforce's login page, not ours. SwiftPort never sees your username or password. We receive a scoped access token that you can revoke at any time from within Salesforce. PKCE (Proof Key for Code Exchange) is enforced on every authorization request, protecting against authorization code interception attacks.",
     badge: "Authentication",
   },
   {
@@ -45,7 +45,7 @@ const pillars = [
     title: "Row-level security isolation",
     subtitle: "Your data is architecturally inaccessible to others",
     description:
-      "Every table in OrgSync's database has Row Level Security (RLS) policies enforced at the database engine level. This means that even if a bug existed in our application code, a customer's sync configurations, connected orgs, and logs are inaccessible to any other customer. The isolation is enforced by the database, not just application logic.",
+      "Every table in SwiftPort's database has Row Level Security (RLS) policies enforced at the database engine level. This means that even if a bug existed in our application code, a customer's sync configurations, connected orgs, and logs are inaccessible to any other customer. The isolation is enforced by the database, not just application logic.",
     badge: "Isolation",
   },
   {
@@ -53,7 +53,7 @@ const pillars = [
     title: "Salesforce External ID upserts",
     subtitle: "No record ID mapping table — ever",
     description:
-      "To track which records have been synced and avoid duplicates, OrgSync uses Salesforce's native External ID mechanism. A custom field (OrgSync_Source_Id__c) is created on your target object in Salesforce, and Salesforce itself handles the find-or-create upsert logic. This means we never maintain a table mapping source record IDs to target record IDs — another potential source of sensitive metadata that we simply don't store.",
+      "To track which records have been synced and avoid duplicates, SwiftPort uses Salesforce's native External ID mechanism. A custom field (SwiftPort_Source_Id__c) is created on your target object in Salesforce, and Salesforce itself handles the find-or-create upsert logic. This means we never maintain a table mapping source record IDs to target record IDs — another potential source of sensitive metadata that we simply don't store.",
     badge: "Data Handling",
   },
   {
@@ -61,7 +61,7 @@ const pillars = [
     title: "Token rotation and revocation",
     subtitle: "Access that expires and can be cut off instantly",
     description:
-      "Salesforce OAuth tokens expire and are automatically refreshed using refresh tokens stored in encrypted form. You can revoke OrgSync's access to your org at any time from Salesforce Setup → Connected Apps, or directly from the OrgSync portal. Revoking access immediately prevents any further sync operations for that org.",
+      "Salesforce OAuth tokens expire and are automatically refreshed using refresh tokens stored in encrypted form. You can revoke SwiftPort's access to your org at any time from Salesforce Setup → Connected Apps, or directly from the SwiftPort portal. Revoking access immediately prevents any further sync operations for that org.",
     badge: "Authentication",
   },
   {
@@ -69,7 +69,7 @@ const pillars = [
     title: "Scoped OAuth permissions",
     subtitle: "Access only what's needed — nothing more",
     description:
-      "OrgSync requests only the OAuth scopes required to read from your source org and write to your target org. We don't request admin permissions, metadata access beyond field creation, or any scope that isn't directly needed for sync to function. You can inspect exactly what was granted from Salesforce Setup → Connected Apps at any time.",
+      "SwiftPort requests only the OAuth scopes required to read from your source org and write to your target org. We don't request admin permissions, metadata access beyond field creation, or any scope that isn't directly needed for sync to function. You can inspect exactly what was granted from Salesforce Setup → Connected Apps at any time.",
     badge: "Authentication",
   },
 ];
@@ -81,7 +81,7 @@ const comparisonRows = [
   { label: "OAuth 2.0 with PKCE", others: null, orgsync: true, oursNote: "Enforced on every auth request" },
   { label: "Row-level customer isolation", others: null, orgsync: true, oursNote: "Database-level RLS" },
   { label: "Password ever stored or seen", others: null, orgsync: false, oursNote: "OAuth only — never your password" },
-  { label: "Access revocable instantly", others: null, orgsync: true, oursNote: "From Salesforce or OrgSync portal" },
+  { label: "Access revocable instantly", others: null, orgsync: true, oursNote: "From Salesforce or SwiftPort portal" },
   { label: "Access revocable from Salesforce at any time", others: null, orgsync: true, oursNote: "Revoke from Connected Apps in Salesforce Setup" },
 ];
 
@@ -118,7 +118,7 @@ export function SecurityPageClient() {
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-xl text-muted-foreground leading-relaxed">
               Most integration platforms store your Salesforce data on their servers while processing it.
-              OrgSync was architected from day one so your records never leave your Salesforce ecosystem.
+              SwiftPort was architected from day one so your records never leave your Salesforce ecosystem.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               {[
@@ -175,14 +175,14 @@ export function SecurityPageClient() {
               </div>
             </FadeIn>
 
-            {/* OrgSync */}
+            {/* SwiftPort */}
             <FadeIn>
               <div className="rounded-2xl border border-primary/20 bg-primary/3 p-6 h-full">
-                <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5">OrgSync</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5">SwiftPort</p>
                 <div className="space-y-3">
                   {[
                     { node: "Your Source Org", note: null, highlight: false },
-                    { node: "OrgSync worker", note: "Maps fields in memory — nothing persisted", highlight: true, good: true },
+                    { node: "SwiftPort worker", note: "Maps fields in memory — nothing persisted", highlight: true, good: true },
                     { node: "Your Target Org", note: null, highlight: false },
                   ].map((item, i, arr) => (
                     <div key={item.node}>
@@ -219,7 +219,7 @@ export function SecurityPageClient() {
               <div className="grid grid-cols-[1fr_auto_auto] border-b bg-muted/30 px-6 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 <span>Property</span>
                 <span className="w-28 text-center">Others</span>
-                <span className="w-28 text-center text-primary">OrgSync</span>
+                <span className="w-28 text-center text-primary">SwiftPort</span>
               </div>
               {comparisonRows.map((row, i) => (
                 <div key={row.label} className={`grid grid-cols-[1fr_auto_auto] items-center px-6 py-4 ${i % 2 === 0 ? "" : "bg-muted/10"}`}>
@@ -255,7 +255,7 @@ export function SecurityPageClient() {
         <div className="mx-auto max-w-5xl px-6 lg:px-8">
           <FadeIn className="text-center mb-14">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Security in depth</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Every layer of OrgSync&apos;s security architecture, explained plainly.</p>
+            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Every layer of SwiftPort&apos;s security architecture, explained plainly.</p>
           </FadeIn>
 
           <StaggerContainer className="space-y-6" staggerDelay={0.07}>

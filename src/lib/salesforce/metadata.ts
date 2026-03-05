@@ -6,8 +6,8 @@ const SF_API_VERSION = "v59.0";
 
 // ─── External ID field constants ─────────────────────────────────────────────
 
-export const EXTERNAL_ID_FIELD_API_NAME = "OrgSync_Source_Id__c";
-export const EXTERNAL_ID_FIELD_LABEL    = "OrgSync Source ID";
+export const EXTERNAL_ID_FIELD_API_NAME = "SwiftPort_Source_Id__c";
+export const EXTERNAL_ID_FIELD_LABEL    = "SwiftPort Source ID";
 
 // ─── Token refresh helper ────────────────────────────────────────────────────
 
@@ -179,7 +179,7 @@ export type EnsureFieldResult =
   | { status: "error"; message: string; permissionError: boolean };
 
 /**
- * Checks whether OrgSync_Source_Id__c exists on `sobjectType` in the given org.
+ * Checks whether SwiftPort_Source_Id__c exists on `sobjectType` in the given org.
  * If it doesn't exist, creates it via the Salesforce Tooling API (REST).
  *
  * The field is:
@@ -236,7 +236,7 @@ export async function ensureExternalIdField(
           externalId: true,
           required: false,
           description:
-            "Managed by OrgSync. Stores the source org record ID to enable accurate upserts. Do not edit.",
+            "Managed by SwiftPort. Stores the source org record ID to enable accurate upserts. Do not edit.",
         },
       }),
     }
@@ -263,7 +263,7 @@ export async function ensureExternalIdField(
     return {
       status: "error",
       message: permissionError
-        ? `Your Salesforce profile needs "Customize Application" permission to let OrgSync create the tracking field on ${sobjectType}.`
+        ? `Your Salesforce profile needs "Customize Application" permission to let SwiftPort create the tracking field on ${sobjectType}.`
         : `Failed to create tracking field: ${txt.slice(0, 300)}`,
       permissionError,
     };

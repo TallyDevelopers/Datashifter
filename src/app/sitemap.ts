@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://orgsync.io";
+const BASE_URL = "https://swiftport.io";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

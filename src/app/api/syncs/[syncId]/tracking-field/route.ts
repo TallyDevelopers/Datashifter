@@ -9,7 +9,7 @@ import {
 /**
  * GET /api/syncs/[syncId]/tracking-field
  *
- * Returns per-object status for OrgSync_Source_Id__c.
+ * Returns per-object status for SwiftPort_Source_Id__c.
  *
  * Strategy (in priority order):
  *  1. If the sync's `tracking_fields_ready` DB record already marks this
@@ -116,7 +116,7 @@ export async function GET(
 
 /**
  * POST /api/syncs/[syncId]/tracking-field
- * Creates OrgSync_Source_Id__c on one specific org + object.
+ * Creates SwiftPort_Source_Id__c on one specific org + object.
  * On success, writes the org+object to `tracking_fields_ready` in the DB.
  */
 export async function POST(

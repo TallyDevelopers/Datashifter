@@ -6,7 +6,7 @@ import { getValidAccessToken, ensureExternalIdField } from "@/lib/salesforce/met
  * POST /api/salesforce/orgs/[orgId]/ensure-external-id-field
  * Body: { sobjectType: string }
  *
- * Checks whether OrgSync_Source_Id__c exists on the given SObject in the org.
+ * Checks whether SwiftPort_Source_Id__c exists on the given SObject in the org.
  * If not, creates it automatically via the Salesforce Tooling API.
  *
  * Called during sync activation. Returns:

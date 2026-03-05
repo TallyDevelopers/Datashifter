@@ -893,7 +893,7 @@ function MatchStrategyStep({
       bg: "bg-green-50 border-green-200",
       selectedBg: "bg-green-50 border-green-500 ring-2 ring-green-200",
       label: "Always Create New",
-      desc: "OrgSync only manages records it creates itself. Any records that already exist in the target org are left completely alone — no risk of overwriting existing data.",
+      desc: "SwiftPort only manages records it creates itself. Any records that already exist in the target org are left completely alone — no risk of overwriting existing data.",
       bestFor: "Best for clean target orgs or when you don't care about pre-existing records.",
     },
     {
@@ -903,7 +903,7 @@ function MatchStrategyStep({
       bg: "bg-blue-50 border-blue-200",
       selectedBg: "bg-blue-50 border-blue-500 ring-2 ring-blue-200",
       label: "Match by Field",
-      desc: "Before creating a new record, OrgSync checks if a record with the same value already exists in the target org using a field you choose (e.g. Email, Account Number). If it finds one, it links to it and updates it instead of creating a duplicate.",
+      desc: "Before creating a new record, SwiftPort checks if a record with the same value already exists in the target org using a field you choose (e.g. Email, Account Number). If it finds one, it links to it and updates it instead of creating a duplicate.",
       bestFor: "Best when your target org already has data you want to keep in sync.",
     },
     {
@@ -923,7 +923,7 @@ function MatchStrategyStep({
       <div>
         <h3 className="text-sm font-semibold">Existing Record Matching</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          What should OrgSync do when it finds records in <span className="font-medium text-foreground">{targetObjectLabel || "the target org"}</span> that it has never managed before?
+          What should SwiftPort do when it finds records in <span className="font-medium text-foreground">{targetObjectLabel || "the target org"}</span> that it has never managed before?
         </p>
       </div>
 
@@ -972,7 +972,7 @@ function MatchStrategyStep({
           <div>
             <p className="text-sm font-semibold">Which field should we match on?</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Pick a field that uniquely identifies a record — like Email, Account Number, or an external ID. OrgSync will search the target org using this field before creating anything new.
+              Pick a field that uniquely identifies a record — like Email, Account Number, or an external ID. SwiftPort will search the target org using this field before creating anything new.
             </p>
           </div>
           <SearchableSelect
@@ -993,7 +993,7 @@ function MatchStrategyStep({
             <div className="flex items-start gap-2 rounded-lg bg-blue-100/60 px-3 py-2 text-xs text-blue-800">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-600" />
               <span>
-                OrgSync will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">{matchStrategy.field}</span> matches the source value. If found, it links and updates. If not, it creates a new record.
+                SwiftPort will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">{matchStrategy.field}</span> matches the source value. If found, it links and updates. If not, it creates a new record.
               </span>
             </div>
           )}
@@ -1004,7 +1004,7 @@ function MatchStrategyStep({
         <div className="flex items-start gap-2 rounded-xl border bg-purple-50/50 px-4 py-3 text-xs text-purple-800">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-purple-600" />
           <span>
-            OrgSync will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">Name</span> matches the source record name. Works best when names are unique in your org.
+            SwiftPort will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">Name</span> matches the source record name. Works best when names are unique in your org.
           </span>
         </div>
       )}
@@ -1540,7 +1540,7 @@ export default function NewSyncPage() {
             );
             const data = await res.json();
             const exists = (data.fields ?? []).some(
-              (f: { api_name: string }) => f.api_name === "OrgSync_Source_Id__c"
+              (f: { api_name: string }) => f.api_name === "SwiftPort_Source_Id__c"
             );
             return { orgId, orgLabel, object, exists };
           } catch {
@@ -1870,7 +1870,7 @@ export default function NewSyncPage() {
             {checkingTrackingField && (
               <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                Checking OrgSync tracking field…
+                Checking SwiftPort tracking field…
               </div>
             )}
 
@@ -1878,7 +1878,7 @@ export default function NewSyncPage() {
               tf.exists ? (
                 <div key={`${tf.orgId}:${tf.object}`} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
                   <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                  <span><span className="font-mono font-semibold">OrgSync_Source_Id__c</span> is ready on <span className="font-semibold">{tf.object}</span> in {tf.orgLabel} — records will update correctly, no duplicates.</span>
+                  <span><span className="font-mono font-semibold">SwiftPort_Source_Id__c</span> is ready on <span className="font-semibold">{tf.object}</span> in {tf.orgLabel} — records will update correctly, no duplicates.</span>
                 </div>
               ) : (
                 <div key={`${tf.orgId}:${tf.object}`} className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs">
@@ -1886,7 +1886,7 @@ export default function NewSyncPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-amber-800">Tracking field missing on <span className="font-mono">{tf.object}</span> in {tf.orgLabel}</p>
                     <p className="mt-0.5 text-amber-700 leading-relaxed">
-                      OrgSync needs a custom field <span className="font-mono font-medium">OrgSync_Source_Id__c</span> on this object to know whether to update an existing record or create a new one. Without it, repeat syncs may create duplicates.
+                      SwiftPort needs a custom field <span className="font-mono font-medium">SwiftPort_Source_Id__c</span> on this object to know whether to update an existing record or create a new one. Without it, repeat syncs may create duplicates.
                     </p>
                   </div>
                   <button

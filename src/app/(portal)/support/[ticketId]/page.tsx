@@ -222,7 +222,7 @@ export default function TicketDetailPage({
                   <CardHeader className="pb-1 pt-3 px-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold">
-                        {isAdmin ? "OrgSync Support" : "You"}
+                        {isAdmin ? "SwiftPort Support" : "You"}
                       </span>
                       {isFirst && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">

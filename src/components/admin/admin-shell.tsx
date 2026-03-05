@@ -58,7 +58,7 @@ export function AdminShell({ children, adminEmail, adminRole }: AdminShellProps)
               </div>
               {!collapsed && (
                 <div>
-                  <span className="text-sm font-bold tracking-tight text-foreground">OrgSync</span>
+                  <span className="text-sm font-bold tracking-tight text-foreground">SwiftPort</span>
                   <span className="ml-1.5 text-xs font-semibold text-red-600 uppercase tracking-wider">Admin</span>
                 </div>
               )}
@@ -160,7 +160,7 @@ export function AdminShell({ children, adminEmail, adminRole }: AdminShellProps)
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-red-600" />
               <span className="text-sm font-semibold text-red-600">Admin Console</span>
-              <span className="text-muted-foreground text-sm">— OrgSync</span>
+              <span className="text-muted-foreground text-sm">— SwiftPort</span>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/dashboard" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">

@@ -62,7 +62,7 @@ export function PortalHeader({
           <div className="flex h-7 w-7 items-center justify-center rounded-md gradient-bg shadow-sm shadow-primary/20">
             <Zap className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="text-base font-bold tracking-tight gradient-text">OrgSync</span>
+          <span className="text-base font-bold tracking-tight gradient-text">SwiftPort</span>
         </Link>
         {/* Page title — visible on desktop */}
         <div className="hidden lg:block">

@@ -381,7 +381,7 @@ function FieldsStep({ mappings, onRemove, onUpdate, onAdd, onAnalyze, analyzing,
       <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
         <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
         <span>
-          <span className="font-mono font-semibold">OrgSync_Source_Id__c</span> is ready on{" "}
+          <span className="font-mono font-semibold">SwiftPort_Source_Id__c</span> is ready on{" "}
           <span className="font-semibold">Account</span> in Acme Sandbox — records will update correctly, no duplicates.
         </span>
       </div>
@@ -820,7 +820,7 @@ export function InteractiveDemo() {
           </div>
           <div className="flex-1 text-center">
             <div className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1 text-xs text-muted-foreground">
-              {done ? "app.orgsync.io/syncs" : "app.orgsync.io/syncs/new"}
+              {done ? "app.swiftport.io/syncs" : "app.swiftport.io/syncs/new"}
             </div>
           </div>
         </div>

@@ -17,7 +17,7 @@ export function CTASection() {
 
             <div className="relative">
               <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                If you have data in two Salesforce orgs,<br className="hidden sm:block" /> OrgSync keeps them in sync.
+                If you have data in two Salesforce orgs,<br className="hidden sm:block" /> SwiftPort keeps them in sync.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
                 Connect your orgs in minutes. Choose what syncs and where it goes.

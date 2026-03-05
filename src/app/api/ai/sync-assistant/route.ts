@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     ].join("\n");
   }).join("\n\n") || "No sync configurations yet.";
 
-  const systemPrompt = `You are a helpful AI assistant embedded inside OrgSync, a Salesforce org-to-org data synchronization platform. You have full visibility into this customer's sync configurations and connected orgs.
+  const systemPrompt = `You are a helpful AI assistant embedded inside SwiftPort, a Salesforce org-to-org data synchronization platform. You have full visibility into this customer's sync configurations and connected orgs.
 
 You help customers understand their syncs, spot potential issues, and answer questions. Be friendly, concise, and direct. Never make up field names, org names, or config details — only reference what's listed below.
 

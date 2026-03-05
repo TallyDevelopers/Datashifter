@@ -29,7 +29,7 @@ function resolvePageMeta(pathname: string): { title: string; description: string
   if (/^\/logs\/[^/]+/.test(pathname)) return { title: "Log Detail", description: "Inspect records, errors, and retry results" };
   if (/^\/support\/[^/]+/.test(pathname)) return { title: "Support Ticket", description: "View and reply to your support ticket" };
 
-  return { title: "OrgSync", description: "" };
+  return { title: "SwiftPort", description: "" };
 }
 
 interface PortalShellProps {

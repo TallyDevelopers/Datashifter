@@ -115,7 +115,7 @@ export function Navbar() {
             <Zap className="h-4 w-4 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight gradient-text">
-            OrgSync
+            SwiftPort
           </span>
         </Link>
 

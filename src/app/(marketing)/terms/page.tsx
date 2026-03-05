@@ -17,12 +17,12 @@ export default function TermsPage() {
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-muted-foreground [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-8 [&_h2]:mb-3">
         <p>
-          These Terms of Service govern your use of the OrgSync platform. By accessing or using OrgSync, you agree to be bound by these terms.
+          These Terms of Service govern your use of the SwiftPort platform. By accessing or using SwiftPort, you agree to be bound by these terms.
         </p>
 
         <h2>1. The Service</h2>
         <p>
-          OrgSync is a SaaS platform that enables synchronization of data between Salesforce organizations. You are responsible for the sync configurations you create and the data they affect.
+          SwiftPort is a SaaS platform that enables synchronization of data between Salesforce organizations. You are responsible for the sync configurations you create and the data they affect.
         </p>
 
         <h2>2. Account Responsibilities</h2>
@@ -30,17 +30,17 @@ export default function TermsPage() {
         <ul className="list-disc pl-5 space-y-1.5 mt-2">
           <li>Maintaining the security of your account credentials</li>
           <li>All activity that occurs under your account</li>
-          <li>Ensuring you have permission from your organization to connect Salesforce orgs to OrgSync</li>
+          <li>Ensuring you have permission from your organization to connect Salesforce orgs to SwiftPort</li>
           <li>The accuracy and legality of data you sync</li>
         </ul>
 
         <h2>3. Salesforce Authorization</h2>
         <p>
-          By connecting a Salesforce org to OrgSync, you represent that you have the authority to authorize OrgSync to access that org on behalf of your organization. OrgSync will only access Salesforce data as directed by your sync configurations.
+          By connecting a Salesforce org to SwiftPort, you represent that you have the authority to authorize SwiftPort to access that org on behalf of your organization. SwiftPort will only access Salesforce data as directed by your sync configurations.
         </p>
 
         <h2>4. Acceptable Use</h2>
-        <p>You may not use OrgSync to:</p>
+        <p>You may not use SwiftPort to:</p>
         <ul className="list-disc pl-5 space-y-1.5 mt-2">
           <li>Violate any applicable laws or regulations</li>
           <li>Infringe on third-party intellectual property rights</li>
@@ -61,12 +61,12 @@ export default function TermsPage() {
 
         <h2>7. Data and Privacy</h2>
         <p>
-          Your use of OrgSync is subject to our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. You retain ownership of all data processed through OrgSync. We process your Salesforce data solely as a data processor on your behalf.
+          Your use of SwiftPort is subject to our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. You retain ownership of all data processed through SwiftPort. We process your Salesforce data solely as a data processor on your behalf.
         </p>
 
         <h2>8. Limitation of Liability</h2>
         <p>
-          OrgSync is not liable for any indirect, incidental, or consequential damages arising from your use of the platform, including but not limited to data loss, sync errors, or business disruption. Our total liability is limited to the amount you paid us in the 3 months preceding the claim.
+          SwiftPort is not liable for any indirect, incidental, or consequential damages arising from your use of the platform, including but not limited to data loss, sync errors, or business disruption. Our total liability is limited to the amount you paid us in the 3 months preceding the claim.
         </p>
 
         <h2>9. Termination</h2>

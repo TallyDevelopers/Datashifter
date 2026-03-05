@@ -10,15 +10,15 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Live Sync — Real-Time Bidirectional Salesforce Org Sync | OrgSync",
+  title: "Live Sync — Real-Time Bidirectional Salesforce Org Sync | SwiftPort",
   description:
     "Keep two Salesforce orgs in sync automatically, every 2 minutes. Bidirectional field mapping, smart filters, picklist support, and real-time error logs — no code, no middleware.",
-  alternates: { canonical: "https://orgsync.io/features/live-sync" },
+  alternates: { canonical: "https://swiftport.io/features/live-sync" },
   openGraph: {
     title: "Live Sync — Real-Time Bidirectional Salesforce Org Sync",
     description:
       "Keep two Salesforce orgs in sync automatically, every 2 minutes. Bidirectional field mapping, filters, and real-time logs — no code needed.",
-    url: "https://orgsync.io/features/live-sync",
+    url: "https://swiftport.io/features/live-sync",
   },
 };
 
@@ -27,7 +27,7 @@ const capabilities = [
     icon: RefreshCw,
     title: "Runs every 2 minutes",
     description:
-      "OrgSync's background worker polls for changes every 2 minutes using Salesforce's SystemModstamp. New and updated records are detected and pushed to the target org without any manual intervention.",
+      "SwiftPort's background worker polls for changes every 2 minutes using Salesforce's SystemModstamp. New and updated records are detected and pushed to the target org without any manual intervention.",
   },
   {
     icon: ArrowLeftRight,
@@ -39,7 +39,7 @@ const capabilities = [
     icon: Filter,
     title: "Filters with picklist support",
     description:
-      "Narrow down which records get synced using field-level filters. For picklist fields, OrgSync pulls the real values from Salesforce and presents them as a dropdown — no guessing allowed.",
+      "Narrow down which records get synced using field-level filters. For picklist fields, SwiftPort pulls the real values from Salesforce and presents them as a dropdown — no guessing allowed.",
   },
   {
     icon: Layers,
@@ -63,13 +63,13 @@ const capabilities = [
     icon: ShieldCheck,
     title: "Match strategy for existing records",
     description:
-      "Already have records in the target org? Configure a match strategy — match by a field value like Email or External ID — so OrgSync links to the existing record instead of creating a duplicate.",
+      "Already have records in the target org? Configure a match strategy — match by a field value like Email or External ID — so SwiftPort links to the existing record instead of creating a duplicate.",
   },
   {
     icon: Bell,
     title: "Pre-flight warnings",
     description:
-      "Before you activate a sync, OrgSync's AI analyzes your field mappings for type mismatches, required fields that are unmapped, and picklist value gaps — with a Remove & Retest option for each issue.",
+      "Before you activate a sync, SwiftPort's AI analyzes your field mappings for type mismatches, required fields that are unmapped, and picklist value gaps — with a Remove & Retest option for each issue.",
   },
 ];
 
@@ -83,12 +83,12 @@ const logFeatures = [
 ];
 
 const steps = [
-  { step: "01", title: "Connect your orgs", body: "Click 'Add Org', authorize via Salesforce OAuth on Salesforce's own login page. No credentials touch OrgSync." },
+  { step: "01", title: "Connect your orgs", body: "Click 'Add Org', authorize via Salesforce OAuth on Salesforce's own login page. No credentials touch SwiftPort." },
   { step: "02", title: "Pick your objects", body: "Choose the source and target object from a searchable dropdown. Accounts, Contacts, Opportunities, custom objects — anything Salesforce exposes." },
   { step: "03", title: "Set filters", body: "Optionally filter which records get synced. Pick a field, an operator, and a value. Picklist fields show real Salesforce picklist values." },
   { step: "04", title: "Map your fields", body: "Drag source fields to target fields. Auto-map handles exact-name matches. Required target fields are highlighted. AI flags type conflicts." },
   { step: "05", title: "Configure Record Types and Owner", body: "Set how Record Types translate and how OwnerId is assigned on newly synced records." },
-  { step: "06", title: "Set match strategy", body: "Tell OrgSync how to handle records that already exist in the target org to avoid duplicates on first run." },
+  { step: "06", title: "Set match strategy", body: "Tell SwiftPort how to handle records that already exist in the target org to avoid duplicates on first run." },
   { step: "07", title: "Dry run & activate", body: "Run a dry run to preview what would sync without writing anything. Then activate — the worker picks it up on the next 2-minute cycle." },
 ];
 
@@ -113,9 +113,9 @@ export default function LiveSyncPage() {
                 <span className="gradient-text">always in sync</span>
               </h1>
               <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
-                OrgSync runs a background worker every 2 minutes, detecting changes in your source org and
+                SwiftPort runs a background worker every 2 minutes, detecting changes in your source org and
                 pushing them to your target org — automatically, with no code, no middleware, and no data
-                ever touching OrgSync&apos;s servers.
+                ever touching SwiftPort&apos;s servers.
               </p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
                 <Button size="lg" className="gradient-bg border-0 text-white hover:opacity-90" asChild>

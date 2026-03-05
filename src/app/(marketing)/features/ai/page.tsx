@@ -9,15 +9,15 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "AI Features — Intelligent Salesforce Sync with Claude | OrgSync",
+  title: "AI Features — Intelligent Salesforce Sync with Claude | SwiftPort",
   description:
-    "OrgSync's AI assistant powered by Claude analyzes your sync configs, warns about mapping issues, suggests field matches, explains errors in plain English, and detects anomalies — automatically.",
-  alternates: { canonical: "https://orgsync.io/features/ai" },
+    "SwiftPort's AI assistant powered by Claude analyzes your sync configs, warns about mapping issues, suggests field matches, explains errors in plain English, and detects anomalies — automatically.",
+  alternates: { canonical: "https://swiftport.io/features/ai" },
   openGraph: {
     title: "AI Features — Intelligent Salesforce Sync with Claude",
     description:
-      "OrgSync's AI warns about mapping issues, explains errors in plain English, suggests fixes, and detects anomalies — automatically.",
-    url: "https://orgsync.io/features/ai",
+      "SwiftPort's AI warns about mapping issues, explains errors in plain English, suggests fixes, and detects anomalies — automatically.",
+    url: "https://swiftport.io/features/ai",
   },
 };
 
@@ -26,14 +26,14 @@ const features = [
     icon: AlertCircle,
     title: "Pre-flight mapping analysis",
     description:
-      "Before you activate a sync or run a migration, OrgSync's AI analyzes your field mappings. It catches currency-to-text mismatches, date format differences, required target fields that are unmapped, and picklist values in source that don't exist in target. Each warning comes with a Remove & Retest option.",
+      "Before you activate a sync or run a migration, SwiftPort's AI analyzes your field mappings. It catches currency-to-text mismatches, date format differences, required target fields that are unmapped, and picklist values in source that don't exist in target. Each warning comes with a Remove & Retest option.",
     badge: "Pre-flight",
   },
   {
     icon: Sparkles,
     title: "Auto-mapping suggestions",
     description:
-      "When you open the field mapper, OrgSync auto-maps fields with identical API names first. The AI then suggests additional mappings based on semantic similarity — e.g. linking Account_Name__c to AccountName__c — so you're not starting from a blank canvas.",
+      "When you open the field mapper, SwiftPort auto-maps fields with identical API names first. The AI then suggests additional mappings based on semantic similarity — e.g. linking Account_Name__c to AccountName__c — so you're not starting from a blank canvas.",
     badge: "Mapping",
   },
   {
@@ -68,7 +68,7 @@ const features = [
     icon: Wrench,
     title: "Natural language sync setup",
     description:
-      "Describe what you want in plain English and OrgSync's AI tries to pre-configure it: 'Sync Contacts from Production to Sandbox when they are created or updated, filtering for contacts in the Enterprise segment.' Then you review and adjust.",
+      "Describe what you want in plain English and SwiftPort's AI tries to pre-configure it: 'Sync Contacts from Production to Sandbox when they are created or updated, filtering for contacts in the Enterprise segment.' Then you review and adjust.",
     badge: "Setup",
   },
   {
@@ -128,7 +128,7 @@ export default function AIFeaturesPage() {
                 <span className="gradient-text">understands your Salesforce data</span>
               </h1>
               <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
-                OrgSync is powered by Claude (Anthropic). The AI knows your field mappings, connected
+                SwiftPort is powered by Claude (Anthropic). The AI knows your field mappings, connected
                 orgs, sync history, and error logs — and it uses that context to give you specific,
                 actionable help rather than generic advice.
               </p>
@@ -169,7 +169,7 @@ export default function AIFeaturesPage() {
                 Eight AI capabilities built into the platform
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                AI isn&apos;t a bolt-on in OrgSync. It&apos;s woven into every step — from setup to monitoring.
+                AI isn&apos;t a bolt-on in SwiftPort. It&apos;s woven into every step — from setup to monitoring.
               </p>
             </div>
           </FadeIn>

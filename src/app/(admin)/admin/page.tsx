@@ -100,7 +100,7 @@ export default function AdminOverviewPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Platform Overview</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Live snapshot of OrgSync across all customers.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Live snapshot of SwiftPort across all customers.</p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchStats} disabled={loading}>
           <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", loading && "animate-spin")} />

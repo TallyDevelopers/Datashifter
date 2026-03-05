@@ -6,7 +6,7 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-
 const pains = [
   {
     problem: "Keeping records in sync across two orgs is a full-time manual job",
-    solution: "OrgSync does it automatically every 2 minutes — no manual work, no scripts.",
+    solution: "SwiftPort does it automatically every 2 minutes — no manual work, no scripts.",
   },
   {
     problem: "You go live and have no idea if it's actually working until something breaks",
@@ -18,7 +18,7 @@ const pains = [
   },
   {
     problem: "Your integration tool stores your Salesforce data on their servers while it processes it",
-    solution: "OrgSync never stores your records. Data flows directly org to org — we orchestrate it, we never hold it.",
+    solution: "SwiftPort never stores your records. Data flows directly org to org — we orchestrate it, we never hold it.",
   },
   {
     problem: "Other tools charge per record — your bill explodes as you grow",
@@ -36,7 +36,7 @@ export function PainPoints() {
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
             These are the problems{" "}
-            <span className="gradient-text">OrgSync was built to fix</span>
+            <span className="gradient-text">SwiftPort was built to fix</span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
             Built by people who have dealt with every one of these frustrations — and got tired of there being no simple solution for Salesforce teams.

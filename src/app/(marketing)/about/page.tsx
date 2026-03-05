@@ -4,21 +4,21 @@ import { AboutClient } from "./_about-client";
 export const metadata: Metadata = {
   title: "About — Built for Salesforce Teams",
   description:
-    "OrgSync was built by Salesforce experts who were tired of syncing data the hard way. Learn about our mission: making Salesforce org synchronization simple, reliable, and accessible to every team.",
+    "SwiftPort was built by Salesforce experts who were tired of syncing data the hard way. Learn about our mission: making Salesforce org synchronization simple, reliable, and accessible to every team.",
   keywords: [
-    "about OrgSync",
+    "about SwiftPort",
     "Salesforce org sync company",
     "Salesforce integration team",
     "Salesforce data sync mission",
   ],
   openGraph: {
-    title: "About OrgSync — Built for Salesforce Teams, By Salesforce Experts",
+    title: "About SwiftPort — Built for Salesforce Teams, By Salesforce Experts",
     description:
-      "We built OrgSync because syncing Salesforce orgs shouldn't require custom Apex, middleware, or manual exports. Learn about our mission.",
-    url: "https://orgsync.io/about",
+      "We built SwiftPort because syncing Salesforce orgs shouldn't require custom Apex, middleware, or manual exports. Learn about our mission.",
+    url: "https://swiftport.io/about",
   },
   alternates: {
-    canonical: "https://orgsync.io/about",
+    canonical: "https://swiftport.io/about",
   },
 };
 

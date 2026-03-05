@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "OrgSync — Move Salesforce Data Any Way You Need It",
+  title: "SwiftPort — Move Salesforce Data Any Way You Need It",
   description:
     "Live bidirectional sync between orgs. Bulk migrations for any object. CPQ and Revenue Cloud Accelerator templates. AI that catches problems before they happen. No code, no engineers required.",
   keywords: [
@@ -21,13 +21,13 @@ export const metadata: Metadata = {
     "Salesforce mass data migration",
   ],
   openGraph: {
-    title: "OrgSync — Move Salesforce Data Any Way You Need It",
+    title: "SwiftPort — Move Salesforce Data Any Way You Need It",
     description:
       "Live sync, bulk migrations, CPQ & RCA templates, and AI pre-flight — all in one platform. No code, no engineers required.",
-    url: "https://orgsync.io",
+    url: "https://swiftport.io",
   },
   alternates: {
-    canonical: "https://orgsync.io",
+    canonical: "https://swiftport.io",
   },
 };
 

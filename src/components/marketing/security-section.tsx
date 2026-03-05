@@ -25,7 +25,7 @@ export function SecuritySection() {
             </h2>
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed">
               Most integration tools route your Salesforce records through their own servers to process them.
-              OrgSync doesn&apos;t. Your data flows directly from one org to another — we orchestrate it, we never hold it.
+              SwiftPort doesn&apos;t. Your data flows directly from one org to another — we orchestrate it, we never hold it.
             </p>
             <div className="mt-8 space-y-3">
               {[
@@ -77,11 +77,11 @@ export function SecuritySection() {
                 </div>
               </div>
 
-              {/* OrgSync */}
+              {/* SwiftPort */}
               <div className="px-6 py-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-4">OrgSync</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-4">SwiftPort</p>
                 <div className="flex items-center gap-3 flex-wrap">
-                  {["Your Salesforce Org", "OrgSync\n(orchestrates only)", "Target Org"].map((node, i, arr) => (
+                  {["Your Salesforce Org", "SwiftPort\n(orchestrates only)", "Target Org"].map((node, i, arr) => (
                     <div key={node} className="flex items-center gap-3">
                       <div className={`rounded-lg border px-3 py-2 text-xs font-medium ${i === 1 ? "border-primary/30 bg-primary/5 text-primary" : "bg-muted text-muted-foreground"}`}>
                         {node.split("\n")[0]}

@@ -9,9 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
-  title: "Documentation — How to Sync Salesforce Orgs with OrgSync",
+  title: "Documentation — How to Sync Salesforce Orgs with SwiftPort",
   description:
-    "Complete guide to bidirectional Salesforce org synchronization with OrgSync. Connect two Salesforce orgs, map fields, set filters, configure owner assignment, and monitor sync logs — no code required.",
+    "Complete guide to bidirectional Salesforce org synchronization with SwiftPort. Connect two Salesforce orgs, map fields, set filters, configure owner assignment, and monitor sync logs — no code required.",
   keywords: [
     "Salesforce org sync",
     "bidirectional Salesforce sync",
@@ -21,47 +21,47 @@ export const metadata: Metadata = {
     "connect multiple Salesforce orgs",
     "Salesforce field mapping",
     "Salesforce cross org data",
-    "OrgSync documentation",
+    "SwiftPort documentation",
     "Salesforce sandbox to production sync",
   ],
   openGraph: {
-    title: "How to Sync Two Salesforce Orgs — OrgSync Documentation",
+    title: "How to Sync Two Salesforce Orgs — SwiftPort Documentation",
     description:
       "Step-by-step guide to connecting, mapping, and syncing data between Salesforce orgs. Covers bidirectional sync, owner assignment, field mapping, error handling, and retry logic.",
     type: "article",
-    url: "https://orgsync.io/docs",
+    url: "https://swiftport.io/docs",
   },
   alternates: {
-    canonical: "https://orgsync.io/docs",
+    canonical: "https://swiftport.io/docs",
   },
 };
 
 const sections = [
   {
     id: "what-is-orgsync",
-    title: "What is OrgSync?",
+    title: "What is SwiftPort?",
     icon: Zap,
-    content: `OrgSync is a SaaS platform that connects two or more Salesforce orgs and keeps data synchronized between them in near real-time — automatically, bidirectionally, and without writing a single line of code.
+    content: `SwiftPort is a SaaS platform that connects two or more Salesforce orgs and keeps data synchronized between them in near real-time — automatically, bidirectionally, and without writing a single line of code.
 
-Companies use OrgSync when they run multiple Salesforce orgs — for example, a parent company and a subsidiary, two acquired companies, or a production org and a sandbox they want to stay in sync. Instead of manual exports, complex middleware, or expensive Salesforce consultants, OrgSync handles the sync automatically every 2 minutes.
+Companies use SwiftPort when they run multiple Salesforce orgs — for example, a parent company and a subsidiary, two acquired companies, or a production org and a sandbox they want to stay in sync. Instead of manual exports, complex middleware, or expensive Salesforce consultants, SwiftPort handles the sync automatically every 2 minutes.
 
-You choose which objects to sync (Accounts, Contacts, Opportunities, custom objects), which fields to map, which records to include or exclude using filters, and who should own the records in the target org. OrgSync's built-in AI analyzes your field mappings and warns you about type mismatches, picklist value mismatches, missing required fields, and lookup field problems before you go live.`,
+You choose which objects to sync (Accounts, Contacts, Opportunities, custom objects), which fields to map, which records to include or exclude using filters, and who should own the records in the target org. SwiftPort's built-in AI analyzes your field mappings and warns you about type mismatches, picklist value mismatches, missing required fields, and lookup field problems before you go live.`,
   },
   {
     id: "connecting-orgs",
     title: "Connecting Your Salesforce Orgs",
     icon: Building2,
-    content: `OrgSync uses Salesforce OAuth 2.0 with PKCE for secure, one-click authentication. You do not need to create a Connected App in Salesforce — OrgSync handles that for you.
+    content: `SwiftPort uses Salesforce OAuth 2.0 with PKCE for secure, one-click authentication. You do not need to create a Connected App in Salesforce — SwiftPort handles that for you.
 
 **Steps:**
 1. Go to Connected Orgs in your dashboard
 2. Click Connect New Org
 3. Choose Production or Sandbox
 4. You'll be redirected to Salesforce's login page — log in with any user who has API access
-5. Approve the OrgSync permissions
+5. Approve the SwiftPort permissions
 6. You're connected
 
-OrgSync requests only the \`api\` OAuth scope — the minimum required to read and write Salesforce records. Your org credentials are encrypted with AES-256-GCM and never stored in plain text.
+SwiftPort requests only the \`api\` OAuth scope — the minimum required to read and write Salesforce records. Your org credentials are encrypted with AES-256-GCM and never stored in plain text.
 
 **Tip:** Use a dedicated Integration User in each org rather than a personal user account. This ensures syncs don't stop if someone changes their password.`,
   },
@@ -81,11 +81,11 @@ OrgSync requests only the \`api\` OAuth scope — the minimum required to read a
 
 **Step 5 — Add filters (optional):** Only sync records that match specific criteria — for example, only Accounts where Industry = Technology, or only Contacts where Email is not blank
 
-**Step 6 — Map fields:** Map each source field to a target field. OrgSync auto-suggests mappings by name. The AI analyzer reviews your mappings and flags incompatible types (e.g., Currency → Text), picklist value mismatches between orgs, missing required fields, read-only fields, and lookup field issues.
+**Step 6 — Map fields:** Map each source field to a target field. SwiftPort auto-suggests mappings by name. The AI analyzer reviews your mappings and flags incompatible types (e.g., Currency → Text), picklist value mismatches between orgs, missing required fields, read-only fields, and lookup field issues.
 
 **Step 7 — Owner assignment:** Every Salesforce record needs an OwnerId. Since User IDs differ between orgs, choose a strategy: Fixed Owner (one user owns all synced records), Round Robin (rotates through a list), or Pass Through (copies source owner — only works if the same user exists in both orgs).
 
-**Step 8 — Pre-flight test and review:** OrgSync fetches a real sample record from your source org and simulates the sync payload without writing anything. You see exactly what would be sent, including any warnings. Activate when ready.`,
+**Step 8 — Pre-flight test and review:** SwiftPort fetches a real sample record from your source org and simulates the sync payload without writing anything. You see exactly what would be sent, including any warnings. Activate when ready.`,
   },
   {
     id: "bidirectional-sync",
@@ -93,7 +93,7 @@ OrgSync requests only the \`api\` OAuth scope — the minimum required to read a
     icon: ArrowLeftRight,
     content: `Bidirectional sync keeps changes flowing in both directions — source to target and target to source.
 
-**How it works:** OrgSync uses Salesforce's \`SystemModstamp\` field to detect which records have changed since the last sync run. After writing a record to the target org, OrgSync records the timestamp so it won't re-process the same record on the next cycle. This prevents infinite sync loops.
+**How it works:** SwiftPort uses Salesforce's \`SystemModstamp\` field to detect which records have changed since the last sync run. After writing a record to the target org, SwiftPort records the timestamp so it won't re-process the same record on the next cycle. This prevents infinite sync loops.
 
 **Separate owner strategies per direction:** You can configure different owner assignment strategies for each direction — for example, all records coming from Org A use a Fixed Owner in Org B, while records going the other way use Round Robin.
 
@@ -105,13 +105,13 @@ OrgSync requests only the \`api\` OAuth scope — the minimum required to read a
     icon: UserCog,
     content: `Every Salesforce record must have an OwnerId. User IDs are unique per org — the same person has a different ID in each org — so you cannot simply copy OwnerId across orgs.
 
-OrgSync provides three strategies:
+SwiftPort provides three strategies:
 
 **Fixed Owner:** All synced records in the target org are assigned to one specific user you select. Simple and predictable. Best for integration users or a dedicated owner.
 
 **Round Robin:** Synced records are distributed evenly across a list of users you select. The first record goes to User 1, the second to User 2, and so on, cycling through the list. Good for distributing leads or cases across a team.
 
-**Pass Through:** OrgSync copies the source OwnerId directly to the target record. This only works if the same user (same Salesforce User ID) exists in both orgs — which is rare. Using Pass Through when the user doesn't exist in the target org causes \`INVALID_CROSS_REFERENCE_KEY\` errors. Only use Pass Through if you've confirmed the user IDs match.`,
+**Pass Through:** SwiftPort copies the source OwnerId directly to the target record. This only works if the same user (same Salesforce User ID) exists in both orgs — which is rare. Using Pass Through when the user doesn't exist in the target org causes \`INVALID_CROSS_REFERENCE_KEY\` errors. Only use Pass Through if you've confirmed the user IDs match.`,
   },
   {
     id: "filters",
@@ -131,23 +131,23 @@ Filters are evaluated against the source record's field values before the record
     id: "field-mapping",
     title: "Field Mapping",
     icon: Columns,
-    content: `Field mapping defines how data flows from source fields to target fields. OrgSync loads all available fields from both objects using the Salesforce Metadata API.
+    content: `Field mapping defines how data flows from source fields to target fields. SwiftPort loads all available fields from both objects using the Salesforce Metadata API.
 
-**AI-powered analysis:** When you click "Analyze with AI" in the field mapping step, OrgSync's AI reviews your mappings and flags:
+**AI-powered analysis:** When you click "Analyze with AI" in the field mapping step, SwiftPort's AI reviews your mappings and flags:
 - Type mismatches (e.g., mapping a Currency field to a Text field)
 - Missing required fields — fields the target object requires but aren't in your mapping
 - Read-only fields (e.g., \`Name\` on Contact, formula fields, auto-number fields)
 - Lookup fields that may reference records that don't exist in the target org
-- **Picklist value mismatches** — if you map a picklist field in the source org to a picklist in the target org, OrgSync compares the actual allowed values from both orgs. If the source has values like \`"Hot"\` or \`"Cold"\` that don't exist in the target's picklist, Salesforce will reject those records. OrgSync flags missing values as a warning (partial overlap) or error (zero overlap) before you go live — so you know exactly which values to add to the target org's picklist definition first.
+- **Picklist value mismatches** — if you map a picklist field in the source org to a picklist in the target org, SwiftPort compares the actual allowed values from both orgs. If the source has values like \`"Hot"\` or \`"Cold"\` that don't exist in the target's picklist, Salesforce will reject those records. SwiftPort flags missing values as a warning (partial overlap) or error (zero overlap) before you go live — so you know exactly which values to add to the target org's picklist definition first.
 
 **Important:** The \`Name\` field on the Contact object is read-only — Salesforce builds it from \`FirstName\` and \`LastName\`. Map those separately and do not include \`Name\` in your mapping.
 
-**How OrgSync tracks records:** When you activate a sync, OrgSync automatically creates a custom field \`OrgSync_Source_Id__c\` on the target object in your target org (requires "Customize Application" permission on the connected profile). This field stores the source record's Salesforce ID and uses Salesforce's native External ID upsert mechanism. On every sync run:
+**How SwiftPort tracks records:** When you activate a sync, SwiftPort automatically creates a custom field \`SwiftPort_Source_Id__c\` on the target object in your target org (requires "Customize Application" permission on the connected profile). This field stores the source record's Salesforce ID and uses Salesforce's native External ID upsert mechanism. On every sync run:
 - If a record with that source ID already exists in the target org → it gets **updated**
 - If no matching record exists → a **new record is created**
-- If someone manually deletes a target record → OrgSync **recreates it cleanly** on the next run
+- If someone manually deletes a target record → SwiftPort **recreates it cleanly** on the next run
 
-Zero record data is ever stored in OrgSync's database — all data lives entirely within your own Salesforce orgs.`,
+Zero record data is ever stored in SwiftPort's database — all data lives entirely within your own Salesforce orgs.`,
   },
   {
     id: "sync-logs",
@@ -169,7 +169,7 @@ Zero record data is ever stored in OrgSync's database — all data lives entirel
     id: "security",
     title: "Security",
     icon: ShieldCheck,
-    content: `OrgSync is designed to be enterprise-safe and is built for Salesforce AppExchange compatibility.
+    content: `SwiftPort is designed to be enterprise-safe and is built for Salesforce AppExchange compatibility.
 
 **What we store:**
 - Your Salesforce OAuth access tokens and refresh tokens — encrypted with AES-256-GCM. The encryption key is never in the database.
@@ -186,9 +186,9 @@ Sync logs (run history, record counts, error codes) are automatically deleted on
 
 **Data isolation:** Each customer's data is isolated using Supabase Row Level Security. It is architecturally impossible for one customer's sync configuration to access another customer's org.
 
-**OAuth scope:** OrgSync requests only the \`api\` OAuth scope — the minimum needed to read and write records via REST API.
+**OAuth scope:** SwiftPort requests only the \`api\` OAuth scope — the minimum needed to read and write records via REST API.
 
-**Transit:** All data between OrgSync and Salesforce is transmitted over TLS 1.2+. Your data never touches disk — syncs are processed entirely in memory.`,
+**Transit:** All data between SwiftPort and Salesforce is transmitted over TLS 1.2+. Your data never touches disk — syncs are processed entirely in memory.`,
   },
   {
     id: "common-errors",
@@ -218,22 +218,22 @@ const toc = sections.map((s) => ({ id: s.id, title: s.title }));
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "TechArticle",
-  "headline": "How to Sync Two Salesforce Orgs — OrgSync Documentation",
+  "headline": "How to Sync Two Salesforce Orgs — SwiftPort Documentation",
   "description":
     "Complete guide to bidirectional Salesforce org synchronization: connecting orgs, field mapping, owner assignment, filters, error handling, and retry logic.",
-  "url": "https://orgsync.io/docs",
+  "url": "https://swiftport.io/docs",
   "author": {
     "@type": "Organization",
-    "name": "OrgSync",
-    "url": "https://orgsync.io",
+    "name": "SwiftPort",
+    "url": "https://swiftport.io",
   },
   "publisher": {
     "@type": "Organization",
-    "name": "OrgSync",
-    "url": "https://orgsync.io",
+    "name": "SwiftPort",
+    "url": "https://swiftport.io",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://orgsync.io/logo.png",
+      "url": "https://swiftport.io/logo.png",
     },
   },
   "about": [
@@ -244,7 +244,7 @@ const jsonLd = {
   ],
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://orgsync.io/docs",
+    "@id": "https://swiftport.io/docs",
   },
 };
 
@@ -257,15 +257,15 @@ const faqJsonLd = {
       "name": "How do I sync two Salesforce orgs?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Connect both orgs using OAuth in the Connected Orgs section, then create a Sync Configuration selecting your source and target org, object, field mappings, and owner assignment strategy. OrgSync will automatically sync records every 2 minutes.",
+        "text": "Connect both orgs using OAuth in the Connected Orgs section, then create a Sync Configuration selecting your source and target org, object, field mappings, and owner assignment strategy. SwiftPort will automatically sync records every 2 minutes.",
       },
     },
     {
       "@type": "Question",
-      "name": "Does OrgSync support bidirectional Salesforce sync?",
+      "name": "Does SwiftPort support bidirectional Salesforce sync?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Set Direction to Bidirectional in the sync builder. OrgSync uses SystemModstamp to detect changes in both orgs and syncs them in both directions, preventing infinite loops.",
+        "text": "Yes. Set Direction to Bidirectional in the sync builder. SwiftPort uses SystemModstamp to detect changes in both orgs and syncs them in both directions, preventing infinite loops.",
       },
     },
     {
@@ -273,15 +273,15 @@ const faqJsonLd = {
       "name": "Do I need to create a Connected App in Salesforce?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. OrgSync uses a shared Connected App with OAuth 2.0 + PKCE. You simply click Connect Org, log in to Salesforce, and approve access. No setup required on your end.",
+        "text": "No. SwiftPort uses a shared Connected App with OAuth 2.0 + PKCE. You simply click Connect Org, log in to Salesforce, and approve access. No setup required on your end.",
       },
     },
     {
       "@type": "Question",
-      "name": "Does OrgSync store my Salesforce data?",
+      "name": "Does SwiftPort store my Salesforce data?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. OrgSync stores zero Salesforce record data. Data flows directly between your orgs in memory. OrgSync uses Salesforce's native External ID mechanism — a custom field (OrgSync_Source_Id__c) on your target object — to track which records have been synced. All data lives entirely within your own Salesforce orgs. OrgSync stores only sync configuration, execution logs, and timestamps.",
+        "text": "No. SwiftPort stores zero Salesforce record data. Data flows directly between your orgs in memory. SwiftPort uses Salesforce's native External ID mechanism — a custom field (SwiftPort_Source_Id__c) on your target object — to track which records have been synced. All data lives entirely within your own Salesforce orgs. SwiftPort stores only sync configuration, execution logs, and timestamps.",
       },
     },
     {
@@ -289,7 +289,7 @@ const faqJsonLd = {
       "name": "How do I handle owner assignment when syncing between orgs?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "OrgSync provides three owner assignment strategies: Fixed Owner (assign all records to one user), Round Robin (distribute across a list of users), or Pass Through (copy source OwnerId — only if the same user exists in both orgs).",
+        "text": "SwiftPort provides three owner assignment strategies: Fixed Owner (assign all records to one user), Round Robin (distribute across a list of users), or Pass Through (copy source OwnerId — only if the same user exists in both orgs).",
       },
     },
   ],

@@ -21,7 +21,7 @@ export function AdminSidebar() {
           <Zap className="h-4 w-4 text-white" />
         </div>
         <div className="leading-tight">
-          <p className="text-sm font-bold tracking-tight">OrgSync</p>
+          <p className="text-sm font-bold tracking-tight">SwiftPort</p>
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">Admin</p>
         </div>
       </div>

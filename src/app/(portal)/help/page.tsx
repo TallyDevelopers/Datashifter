@@ -18,7 +18,7 @@ const GETTING_STARTED = [
     step: 1,
     icon: Building2,
     title: "Connect your Salesforce orgs",
-    description: "Go to Connected Orgs and click Connect New Org. You'll be redirected to Salesforce to approve access — no Connected App setup required on your end. OrgSync handles authentication securely via OAuth 2.0.",
+    description: "Go to Connected Orgs and click Connect New Org. You'll be redirected to Salesforce to approve access — no Connected App setup required on your end. SwiftPort handles authentication securely via OAuth 2.0.",
     tip: "You can connect Production and Sandbox orgs. Connect at least two to start syncing between them.",
     link: { label: "Go to Connected Orgs", href: "/orgs" },
   },
@@ -41,7 +41,7 @@ const GETTING_STARTED = [
     step: 4,
     icon: Columns,
     title: "Map your fields",
-    description: "In Step 6 of the sync builder, map fields from your source object to your target object. OrgSync will suggest mappings automatically. The AI analyzer will warn you about incompatible types, required fields you've missed, and read-only fields.",
+    description: "In Step 6 of the sync builder, map fields from your source object to your target object. SwiftPort will suggest mappings automatically. The AI analyzer will warn you about incompatible types, required fields you've missed, and read-only fields.",
     tip: "Don't map the Name field on Contact — it's a read-only compound field. Map FirstName and LastName separately instead.",
   },
   {
@@ -55,7 +55,7 @@ const GETTING_STARTED = [
     step: 6,
     icon: CheckCircle2,
     title: "Activate and monitor",
-    description: "Activate your sync from the Sync Configs list. OrgSync polls for changes every 2 minutes. Go to Sync Logs to see every run — how many records succeeded, failed, and exactly what the error was. You can retry failed records individually or all at once.",
+    description: "Activate your sync from the Sync Configs list. SwiftPort polls for changes every 2 minutes. Go to Sync Logs to see every run — how many records succeeded, failed, and exactly what the error was. You can retry failed records individually or all at once.",
     link: { label: "View Sync Logs", href: "/logs" },
   },
 ];
@@ -110,31 +110,31 @@ const COMMON_ERRORS = [
 
 const FAQS = [
   {
-    q: "Does OrgSync store my Salesforce data?",
-    a: "No. OrgSync never stores Salesforce record field values. We only store record IDs (to track what's been synced), sync configuration metadata, and execution logs. Your data flows directly between your orgs in memory.",
+    q: "Does SwiftPort store my Salesforce data?",
+    a: "No. SwiftPort never stores Salesforce record field values. We only store record IDs (to track what's been synced), sync configuration metadata, and execution logs. Your data flows directly between your orgs in memory.",
   },
   {
-    q: "How often does OrgSync check for new records?",
-    a: "Every 2 minutes. OrgSync polls your source org for records modified since the last successful run using Salesforce's SystemModstamp field. This means the maximum delay between a record changing and it syncing is about 2 minutes.",
+    q: "How often does SwiftPort check for new records?",
+    a: "Every 2 minutes. SwiftPort polls your source org for records modified since the last successful run using Salesforce's SystemModstamp field. This means the maximum delay between a record changing and it syncing is about 2 minutes.",
   },
   {
     q: "Can I sync the same object in both directions?",
-    a: "Yes — set Direction to Bidirectional in Step 3 of the sync builder. You can configure separate owner assignment strategies for each direction. Be aware that bidirectional sync requires careful field mapping to avoid infinite loops — OrgSync uses SystemModstamp to prevent re-syncing records it just wrote.",
+    a: "Yes — set Direction to Bidirectional in Step 3 of the sync builder. You can configure separate owner assignment strategies for each direction. Be aware that bidirectional sync requires careful field mapping to avoid infinite loops — SwiftPort uses SystemModstamp to prevent re-syncing records it just wrote.",
   },
   {
     q: "What happens if a sync fails halfway through?",
-    a: "OrgSync uses per-record tracking. If 8 out of 10 records succeed and 2 fail, the 8 are marked as synced and won't be re-processed. The 2 failures are logged with exact error codes and you can retry them individually or all at once from the Logs page.",
+    a: "SwiftPort uses per-record tracking. If 8 out of 10 records succeed and 2 fail, the 8 are marked as synced and won't be re-processed. The 2 failures are logged with exact error codes and you can retry them individually or all at once from the Logs page.",
   },
   {
     q: "Can I filter which records get synced?",
     a: "Yes. In Step 5 of the sync builder you can add filter conditions — for example, only sync Accounts where Industry equals 'Technology', or only Contacts where Email is not empty. Filters use the source record's field values.",
   },
   {
-    q: "What Salesforce permissions does OrgSync need?",
-    a: "OrgSync requests the 'api' OAuth scope, which gives access to Salesforce data via REST API. It needs Read access on the source object and Create/Edit access on the target object. We recommend using a dedicated Integration User profile.",
+    q: "What Salesforce permissions does SwiftPort need?",
+    a: "SwiftPort requests the 'api' OAuth scope, which gives access to Salesforce data via REST API. It needs Read access on the source object and Create/Edit access on the target object. We recommend using a dedicated Integration User profile.",
   },
   {
-    q: "Will OrgSync work with Salesforce Sandboxes?",
+    q: "Will SwiftPort work with Salesforce Sandboxes?",
     a: "Yes. When connecting an org, select Sandbox and you'll be redirected to test.salesforce.com instead of login.salesforce.com. You can mix Production and Sandbox orgs in the same sync.",
   },
   {

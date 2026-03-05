@@ -432,7 +432,7 @@ function OrgsPageContent() {
             </a>
           </div>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Your Salesforce credentials are never stored by OrgSync.
+            Your Salesforce credentials are never stored by SwiftPort.
           </p>
         </DialogContent>
       </Dialog>

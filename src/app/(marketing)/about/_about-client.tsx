@@ -53,7 +53,7 @@ export function AboutClient() {
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
             We&apos;ve spent years building Salesforce integrations the hard way — custom
-            Apex, middleware, manual CSV exports. OrgSync is the tool we wished
+            Apex, middleware, manual CSV exports. SwiftPort is the tool we wished
             existed. So we built it.
           </p>
         </FadeIn>
@@ -96,7 +96,7 @@ export function AboutClient() {
               Our Team
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight">
-              The people behind OrgSync
+              The people behind SwiftPort
             </h2>
           </FadeIn>
           <StaggerContainer className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4" staggerDelay={0.08}>

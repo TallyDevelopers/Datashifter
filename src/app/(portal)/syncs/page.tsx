@@ -517,7 +517,7 @@ export default function SyncsPage() {
                             Tracking field missing on <span className="font-mono">{missing.object}</span> in {missing.orgLabel}
                           </p>
                           <p className="mt-0.5 text-amber-700 leading-relaxed">
-                            OrgSync uses a custom field <span className="font-mono">OrgSync_Source_Id__c</span> to know which records to update vs create. Without it, every sync run may create duplicate records instead of updating existing ones.
+                            SwiftPort uses a custom field <span className="font-mono">SwiftPort_Source_Id__c</span> to know which records to update vs create. Without it, every sync run may create duplicate records instead of updating existing ones.
                           </p>
                         </div>
                         <button

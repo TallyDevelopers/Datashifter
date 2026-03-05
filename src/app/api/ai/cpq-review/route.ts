@@ -159,7 +159,7 @@ Rules:
 - Flag lookup fields on target objects that reference objects NOT present in this job at all
 - Flag lookup fields that reference objects that appear AFTER this step (will fail because parent doesn't exist yet)
 - Flag required fields on the target that are not mapped
-- Do NOT flag OrgSync_Source_Id__c — that is handled automatically
+- Do NOT flag SwiftPort_Source_Id__c — that is handled automatically
 - If everything looks clean, return an empty array []
 - Keep messages friendly, non-technical where possible`;
 

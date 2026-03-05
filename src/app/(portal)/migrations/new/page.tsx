@@ -1267,7 +1267,7 @@ function StepMatchStrategy({ state, setState }: {
       color: "text-green-600",
       selectedBg: "bg-green-50 border-green-500 ring-2 ring-green-200",
       label: "Always Create New",
-      desc: "OrgSync only creates records it hasn't seen before. Records that already exist in the target org are left completely alone.",
+      desc: "SwiftPort only creates records it hasn't seen before. Records that already exist in the target org are left completely alone.",
       bestFor: "Best for clean target orgs or when you don't care about pre-existing records.",
       badge: "Recommended",
       badgeClass: "bg-green-100 text-green-700",
@@ -1278,7 +1278,7 @@ function StepMatchStrategy({ state, setState }: {
       color: "text-blue-600",
       selectedBg: "bg-blue-50 border-blue-500 ring-2 ring-blue-200",
       label: "Match by Field",
-      desc: "Before creating, OrgSync checks if a record already exists using a field you pick (like Email or Account Number). If it finds one, it links and updates it instead of duplicating.",
+      desc: "Before creating, SwiftPort checks if a record already exists using a field you pick (like Email or Account Number). If it finds one, it links and updates it instead of duplicating.",
       bestFor: "Best when your target org already has data you want to keep in sync.",
       badge: null,
       badgeClass: "",
@@ -1301,7 +1301,7 @@ function StepMatchStrategy({ state, setState }: {
       <div>
         <h3 className="text-sm font-semibold">Existing Record Matching</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          What should OrgSync do when records already exist in the target org before this migration starts? This setting applies to <span className="font-medium text-foreground">all steps</span> in this migration.
+          What should SwiftPort do when records already exist in the target org before this migration starts? This setting applies to <span className="font-medium text-foreground">all steps</span> in this migration.
         </p>
       </div>
 
@@ -1381,7 +1381,7 @@ function StepMatchStrategy({ state, setState }: {
                     {currentStrategy.field && (
                       <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
                         <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-600" />
-                        <span>OrgSync will look for existing <span className="font-semibold">{step.target_object}</span> records where <span className="font-mono font-semibold">{currentStrategy.field}</span> matches before creating new ones.</span>
+                        <span>SwiftPort will look for existing <span className="font-semibold">{step.target_object}</span> records where <span className="font-mono font-semibold">{currentStrategy.field}</span> matches before creating new ones.</span>
                       </div>
                     )}
                   </div>
@@ -1390,7 +1390,7 @@ function StepMatchStrategy({ state, setState }: {
                 {currentStrategy.type === "name" && (
                   <div className="flex items-start gap-2 rounded-lg bg-purple-50 px-3 py-2 text-xs text-purple-800">
                     <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-purple-600" />
-                    <span>OrgSync will match <span className="font-semibold">{step.target_object}</span> records by the <span className="font-mono font-semibold">Name</span> field.</span>
+                    <span>SwiftPort will match <span className="font-semibold">{step.target_object}</span> records by the <span className="font-mono font-semibold">Name</span> field.</span>
                   </div>
                 )}
               </div>

@@ -50,7 +50,7 @@ export function Footer() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-bg">
                 <Zap className="h-4 w-4 text-white" />
               </div>
-              <span className="text-lg font-bold tracking-tight">OrgSync</span>
+              <span className="text-lg font-bold tracking-tight">SwiftPort</span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Live sync, bulk migrations, CPQ & RCA templates, and AI — all in one platform. Move Salesforce data any way you need it, without code.
@@ -78,7 +78,7 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 md:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} OrgSync. All rights reserved.
+            &copy; {new Date().getFullYear()} SwiftPort. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link href="#" className="text-muted-foreground transition-colors hover:text-foreground">

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const testimonials = [
   {
     quote:
-      "OrgSync replaced a custom Apex solution that took us 6 months to build. We set it up in an afternoon.",
+      "SwiftPort replaced a custom Apex solution that took us 6 months to build. We set it up in an afternoon.",
     name: "Sarah Chen",
     title: "Salesforce Architect",
     company: "TechFlow Inc.",

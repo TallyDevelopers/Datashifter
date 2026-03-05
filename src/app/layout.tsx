@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "OrgSync — Bidirectional Salesforce Org Sync, No Code Required",
-    template: "%s | OrgSync",
+    default: "SwiftPort — Bidirectional Salesforce Org Sync, No Code Required",
+    template: "%s | SwiftPort",
   },
   description:
-    "OrgSync connects two or more Salesforce orgs and syncs data between them automatically — bidirectionally, every 2 minutes, with AI-powered field mapping and built-in retry logic. No code, no Connected App setup.",
+    "SwiftPort connects two or more Salesforce orgs and syncs data between them automatically — bidirectionally, every 2 minutes, with AI-powered field mapping and built-in retry logic. No code, no Connected App setup.",
   keywords: [
     "Salesforce org sync",
     "sync two Salesforce orgs",
@@ -35,16 +35,16 @@ export const metadata: Metadata = {
     "Salesforce AppExchange sync tool",
   ],
   openGraph: {
-    title: "OrgSync — Sync Data Between Salesforce Orgs, Automatically",
+    title: "SwiftPort — Sync Data Between Salesforce Orgs, Automatically",
     description:
       "Connect two Salesforce orgs, map fields visually, set filters, and sync data bidirectionally every 2 minutes. No code. No Connected App. AI-powered error detection.",
     type: "website",
-    url: "https://orgsync.io",
-    siteName: "OrgSync",
+    url: "https://swiftport.io",
+    siteName: "SwiftPort",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OrgSync — Bidirectional Salesforce Org Sync",
+    title: "SwiftPort — Bidirectional Salesforce Org Sync",
     description:
       "Connect two Salesforce orgs and keep their data in sync automatically. Bidirectional, no-code, AI-powered.",
     creator: "@orgsyncio",
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://orgsync.io",
+    canonical: "https://swiftport.io",
   },
 };
 

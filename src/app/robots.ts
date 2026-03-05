@@ -18,6 +18,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: "https://orgsync.io/sitemap.xml",
+    sitemap: "https://swiftport.io/sitemap.xml",
   };
 }

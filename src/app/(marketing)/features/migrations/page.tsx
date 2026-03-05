@@ -10,15 +10,15 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Mass Migrations — Bulk Data Transfer Between Salesforce Orgs | OrgSync",
+  title: "Mass Migrations — Bulk Data Transfer Between Salesforce Orgs | SwiftPort",
   description:
     "Move any Salesforce object — Accounts, Contacts, Orders, Opportunities, custom objects — from one org to another in bulk. Save and re-run migrations. Full run history. No code.",
-  alternates: { canonical: "https://orgsync.io/features/migrations" },
+  alternates: { canonical: "https://swiftport.io/features/migrations" },
   openGraph: {
     title: "Mass Migrations — Bulk Data Transfer Between Salesforce Orgs",
     description:
       "Move any Salesforce object from one org to another in bulk. Save and re-run migrations. Full run history. No code.",
-    url: "https://orgsync.io/features/migrations",
+    url: "https://swiftport.io/features/migrations",
   },
 };
 
@@ -27,13 +27,13 @@ const capabilities = [
     icon: Layers,
     title: "Any Salesforce object",
     description:
-      "Migrate standard objects (Accounts, Contacts, Leads, Opportunities, Cases) or any custom object. OrgSync fetches the full schema from Salesforce so you see every field.",
+      "Migrate standard objects (Accounts, Contacts, Leads, Opportunities, Cases) or any custom object. SwiftPort fetches the full schema from Salesforce so you see every field.",
   },
   {
     icon: GitBranch,
     title: "Multi-step, dependency-aware",
     description:
-      "Define multiple object steps in a single migration job. OrgSync executes them in sequence — so Accounts migrate before Contacts, preserving lookup relationships.",
+      "Define multiple object steps in a single migration job. SwiftPort executes them in sequence — so Accounts migrate before Contacts, preserving lookup relationships.",
   },
   {
     icon: Filter,
@@ -101,9 +101,9 @@ const steps = [
   { step: "02", title: "Choose source and target orgs", body: "Select from your connected orgs. The same org can be used for both source and target (useful for testing)." },
   { step: "03", title: "Add steps (objects)", body: "Each step is one object migration. Add as many steps as needed. Order matters — place parent objects before child objects." },
   { step: "04", title: "Per step: filters and mapping", body: "For each step, configure which records to pull (filters) and how fields map from source to target. Required target fields are highlighted." },
-  { step: "05", title: "Per step: match strategy", body: "Tell OrgSync how to handle records already in the target org. Match by a field like Email or External ID to avoid duplicates." },
-  { step: "06", title: "Review AI warnings", body: "OrgSync's AI analyzes your mapping for type mismatches, unmapped required fields, and potential data loss before you run." },
-  { step: "07", title: "Run the migration", body: "Hit Run. OrgSync executes each step in sequence on the Railway worker. Monitor live progress in the run history view." },
+  { step: "05", title: "Per step: match strategy", body: "Tell SwiftPort how to handle records already in the target org. Match by a field like Email or External ID to avoid duplicates." },
+  { step: "06", title: "Review AI warnings", body: "SwiftPort's AI analyzes your mapping for type mismatches, unmapped required fields, and potential data loss before you run." },
+  { step: "07", title: "Run the migration", body: "Hit Run. SwiftPort executes each step in sequence on the Railway worker. Monitor live progress in the run history view." },
 ];
 
 export default function MigrationsPage() {
@@ -128,7 +128,7 @@ export default function MigrationsPage() {
               </h1>
               <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
                 Whether you&apos;re consolidating orgs, refreshing a sandbox, or doing an initial data load,
-                OrgSync Migrations let you push any object — with filters, field mapping, and match strategy —
+                SwiftPort Migrations let you push any object — with filters, field mapping, and match strategy —
                 from one Salesforce org to another. No code. Save and re-run any time.
               </p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -270,7 +270,7 @@ export default function MigrationsPage() {
                   Need ordered, dependency-chain migrations?
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl mx-auto">
-                  Migrations also power OrgSync&apos;s CPQ and Revenue Cloud Accelerator (RCA) integration modes.
+                  Migrations also power SwiftPort&apos;s CPQ and Revenue Cloud Accelerator (RCA) integration modes.
                   These are pre-built templates that migrate Salesforce CPQ and RCA objects in the correct
                   dependency order — Price Books, Products, Pricebook Entries, Assets, and more.
                 </p>

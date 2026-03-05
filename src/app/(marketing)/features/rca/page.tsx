@@ -10,15 +10,15 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Salesforce Revenue Cloud Accelerator (RCA) Migration | OrgSync",
+  title: "Salesforce Revenue Cloud Accelerator (RCA) Migration | SwiftPort",
   description:
     "Migrate Salesforce Revenue Cloud Accelerator (RCA) and Billing objects between orgs in dependency order. Assets, Subscriptions, Invoices, Orders, and more — no code, no broken lookups.",
-  alternates: { canonical: "https://orgsync.io/features/rca" },
+  alternates: { canonical: "https://swiftport.io/features/rca" },
   openGraph: {
     title: "Salesforce Revenue Cloud Accelerator (RCA) Migration",
     description:
       "Migrate RCA and Billing objects between Salesforce orgs in the correct dependency order. Assets, Subscriptions, Invoices — no broken lookups.",
-    url: "https://orgsync.io/features/rca",
+    url: "https://swiftport.io/features/rca",
   },
 };
 
@@ -44,7 +44,7 @@ const challenges = [
     icon: Database,
     title: "Financial data demands precision",
     description:
-      "Revenue and billing data has strict field requirements. Required fields, precision constraints on currency fields, date field formats, and lookup validations all need to be mapped correctly. OrgSync flags every type mismatch and required field gap before you run.",
+      "Revenue and billing data has strict field requirements. Required fields, precision constraints on currency fields, date field formats, and lookup validations all need to be mapped correctly. SwiftPort flags every type mismatch and required field gap before you run.",
   },
   {
     icon: Shield,
@@ -56,7 +56,7 @@ const challenges = [
     icon: AlertCircle,
     title: "Don't migrate partial billing chains",
     description:
-      "If Asset migration fails, OrgSync stops the chain immediately. Subscription records won't be inserted with broken Asset lookups. Invoice lines won't reference non-existent invoices. The critical-fail logic keeps your data consistent.",
+      "If Asset migration fails, SwiftPort stops the chain immediately. Subscription records won't be inserted with broken Asset lookups. Invoice lines won't reference non-existent invoices. The critical-fail logic keeps your data consistent.",
   },
 ];
 
@@ -67,7 +67,7 @@ const useCases = [
   },
   {
     title: "Revenue Cloud implementation migration",
-    description: "Moving from Salesforce Billing to Revenue Cloud Accelerator? Use OrgSync to migrate your existing billing objects into the new data model with field mapping to handle schema changes.",
+    description: "Moving from Salesforce Billing to Revenue Cloud Accelerator? Use SwiftPort to migrate your existing billing objects into the new data model with field mapping to handle schema changes.",
   },
   {
     title: "Org split or acquisition",
@@ -84,7 +84,7 @@ const steps = [
   { step: "02", title: "Scope each step with filters", body: "For billing data, you often want a subset — e.g. active subscriptions only, open invoices from the last 12 months, contracts in specific regions." },
   { step: "03", title: "Map billing fields carefully", body: "Currency fields, date fields, formula-backed fields — the mapper flags every type mismatch. AI analysis catches precision and format issues." },
   { step: "04", title: "Set match strategies using invoice/order numbers", body: "Invoice Number, Order Number, Contract Number are natural deduplication keys. Use these as your match field to prevent re-runs from creating duplicate billing records." },
-  { step: "05", title: "Review AI pre-flight analysis", body: "Before running, OrgSync's AI checks for required field gaps, type mismatches, picklist values in source that don't exist in target, and flags them with suggested fixes." },
+  { step: "05", title: "Review AI pre-flight analysis", body: "Before running, SwiftPort's AI checks for required field gaps, type mismatches, picklist values in source that don't exist in target, and flags them with suggested fixes." },
   { step: "06", title: "Run with monitoring", body: "Execute. Per-step progress updates in real time. If a step fails, the chain stops. Fix the mapping issue and re-run — already-migrated steps are handled by the match strategy." },
 ];
 
@@ -110,7 +110,7 @@ export default function RCAPage() {
               </h1>
               <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
                 Revenue Cloud Accelerator (RCA) and Salesforce Billing objects have deep dependency chains.
-                Assets before Subscriptions. Contracts before Orders. Orders before Invoices. OrgSync&apos;s
+                Assets before Subscriptions. Contracts before Orders. Orders before Invoices. SwiftPort&apos;s
                 RCA migration mode handles this automatically — with field mapping, deduplication, and
                 critical-fail logic that stops the chain if something breaks.
               </p>
@@ -148,7 +148,7 @@ export default function RCAPage() {
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center mb-16">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                RCA objects OrgSync can migrate
+                RCA objects SwiftPort can migrate
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 The RCA template covers the standard Revenue Cloud and Billing object model. Any custom
@@ -184,7 +184,7 @@ export default function RCAPage() {
                   Run in the right order, automatically
                 </h2>
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                  The RCA object model is a tree of dependencies. OrgSync&apos;s migration engine processes
+                  The RCA object model is a tree of dependencies. SwiftPort&apos;s migration engine processes
                   each step sequentially, and if any step in a chain fails, execution stops immediately
                   to prevent orphaned records or broken lookups downstream.
                 </p>
@@ -324,7 +324,7 @@ export default function RCAPage() {
                   <p className="font-semibold">Also using Salesforce CPQ?</p>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  OrgSync also has a dedicated CPQ migration mode for the Salesforce CPQ product catalog
+                  SwiftPort also has a dedicated CPQ migration mode for the Salesforce CPQ product catalog
                   hierarchy — Products, Price Books, Price Rules, and Discount Schedules.
                 </p>
               </div>

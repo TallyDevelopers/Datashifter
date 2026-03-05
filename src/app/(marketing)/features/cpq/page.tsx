@@ -9,15 +9,15 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Salesforce CPQ Migration — Move CPQ Data Between Orgs | OrgSync",
+  title: "Salesforce CPQ Migration — Move CPQ Data Between Orgs | SwiftPort",
   description:
     "Migrate Salesforce CPQ objects between orgs in the correct dependency order. Price Books, Products, Pricebook Entries, Quote Templates, and custom CPQ objects — handled automatically.",
-  alternates: { canonical: "https://orgsync.io/features/cpq" },
+  alternates: { canonical: "https://swiftport.io/features/cpq" },
   openGraph: {
     title: "Salesforce CPQ Migration — Move CPQ Data Between Orgs",
     description:
       "Migrate Salesforce CPQ objects in the correct dependency order. Price Books, Products, Pricebook Entries, and more — no manual ordering required.",
-    url: "https://orgsync.io/features/cpq",
+    url: "https://swiftport.io/features/cpq",
   },
 };
 
@@ -37,25 +37,25 @@ const challenges = [
     icon: GitBranch,
     title: "Dependency ordering is critical",
     description:
-      "CPQ data has strict parent-child relationships. Price Book Entries depend on both Price Books and Products. Discount Schedules reference Products. If you migrate in the wrong order, lookups break and records fail to insert. OrgSync's migration engine handles this automatically.",
+      "CPQ data has strict parent-child relationships. Price Book Entries depend on both Price Books and Products. Discount Schedules reference Products. If you migrate in the wrong order, lookups break and records fail to insert. SwiftPort's migration engine handles this automatically.",
   },
   {
     icon: Database,
     title: "Field mapping between environments",
     description:
-      "Your sandbox and production orgs may have different field configurations, custom fields at different API versions, or picklist values that don't match. OrgSync's field mapper shows you every field from both sides and flags type mismatches before you run.",
+      "Your sandbox and production orgs may have different field configurations, custom fields at different API versions, or picklist values that don't match. SwiftPort's field mapper shows you every field from both sides and flags type mismatches before you run.",
   },
   {
     icon: Shield,
     title: "No duplicates on re-run",
     description:
-      "CPQ migrations often need to be run multiple times — once to test, once to go live, once for incremental updates. OrgSync's match strategy links existing records by a field like Product Code or External ID so re-runs update records instead of creating duplicates.",
+      "CPQ migrations often need to be run multiple times — once to test, once to go live, once for incremental updates. SwiftPort's match strategy links existing records by a field like Product Code or External ID so re-runs update records instead of creating duplicates.",
   },
   {
     icon: Clock,
     title: "Critical-fail chain stops execution",
     description:
-      "If Price Book migration fails, OrgSync stops the chain. It won't attempt to migrate Pricebook Entries that would reference non-existent Price Books and flood your logs with meaningless errors.",
+      "If Price Book migration fails, SwiftPort stops the chain. It won't attempt to migrate Pricebook Entries that would reference non-existent Price Books and flood your logs with meaningless errors.",
   },
 ];
 
@@ -74,7 +74,7 @@ const useCases = [
   },
   {
     title: "CPQ implementation migration",
-    description: "Migrating from a legacy quoting system to Salesforce CPQ. Use OrgSync to bulk-load your product catalog and pricing structures into the new org.",
+    description: "Migrating from a legacy quoting system to Salesforce CPQ. Use SwiftPort to bulk-load your product catalog and pricing structures into the new org.",
   },
 ];
 
@@ -82,9 +82,9 @@ const steps = [
   { step: "01", title: "Select CPQ template", body: "Choose the CPQ migration template when creating a new job. It pre-populates the recommended object order and common field mappings." },
   { step: "02", title: "Review and adjust object order", body: "The template orders objects by dependency. You can add, remove, or reorder steps based on what's in your specific org." },
   { step: "03", title: "Configure field mappings per step", body: "Each object step has independent field mapping. Auto-map handles name-matching fields; you handle schema differences manually." },
-  { step: "04", title: "Set match strategies", body: "For each object, define how OrgSync identifies existing records. Typically Product Code for Products, Name for Price Books." },
+  { step: "04", title: "Set match strategies", body: "For each object, define how SwiftPort identifies existing records. Typically Product Code for Products, Name for Price Books." },
   { step: "05", title: "Add filters if needed", body: "Optionally scope each step — e.g. only active products, only custom price books, only non-expired discount schedules." },
-  { step: "06", title: "Review AI warnings", body: "OrgSync flags required fields that are unmapped, type mismatches, and picklist values that exist in source but not target." },
+  { step: "06", title: "Review AI warnings", body: "SwiftPort flags required fields that are unmapped, type mismatches, and picklist values that exist in source but not target." },
   { step: "07", title: "Run and monitor", body: "Execute the job. Each step runs in sequence. View per-step progress, per-record results, and full error details in the run history." },
 ];
 
@@ -110,7 +110,7 @@ export default function CPQPage() {
               </h1>
               <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
                 Salesforce CPQ has a complex object hierarchy. Price Books, Products, Pricebook Entries,
-                Price Rules, Discount Schedules — each depends on the previous. OrgSync migrates them
+                Price Rules, Discount Schedules — each depends on the previous. SwiftPort migrates them
                 in the correct dependency order automatically, with full field mapping and deduplication.
               </p>
               <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -147,7 +147,7 @@ export default function CPQPage() {
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center mb-16">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                CPQ objects OrgSync can migrate
+                CPQ objects SwiftPort can migrate
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 Standard CPQ objects and any custom objects in your org. The template pre-populates the
@@ -171,7 +171,7 @@ export default function CPQPage() {
           </StaggerContainer>
           <FadeIn delay={0.2}>
             <p className="text-center text-sm text-muted-foreground mt-8">
-              Plus any custom CPQ-related objects in your org — OrgSync fetches your full schema.
+              Plus any custom CPQ-related objects in your org — SwiftPort fetches your full schema.
             </p>
           </FadeIn>
         </div>
@@ -183,7 +183,7 @@ export default function CPQPage() {
           <FadeIn>
             <div className="mx-auto max-w-2xl text-center mb-16">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Why CPQ migrations are hard — and how OrgSync helps
+                Why CPQ migrations are hard — and how SwiftPort helps
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 CPQ has more interdependencies than almost any other Salesforce product.
@@ -272,7 +272,7 @@ export default function CPQPage() {
                   <p className="font-semibold">Also using Revenue Cloud Accelerator?</p>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  OrgSync also has an RCA migration mode for Revenue Cloud (formerly Billing) objects.
+                  SwiftPort also has an RCA migration mode for Revenue Cloud (formerly Billing) objects.
                   Same dependency-aware engine, pre-built templates for RCA object hierarchies.
                 </p>
               </div>

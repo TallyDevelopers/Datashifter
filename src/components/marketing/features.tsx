@@ -38,7 +38,7 @@ const features = [
     icon: LayoutGrid,
     title: "Choose exactly what copies over",
     description:
-      "See every field from both orgs side by side. Pick which fields move between orgs and match them up. OrgSync syncs exactly what you configure — nothing more, nothing less.",
+      "See every field from both orgs side by side. Pick which fields move between orgs and match them up. SwiftPort syncs exactly what you configure — nothing more, nothing less.",
     ai: false,
   },
   {
@@ -73,7 +73,7 @@ const features = [
     icon: FlaskConical,
     title: "Test with a real record before activating",
     description:
-      "Run a live test using an actual record from your org. OrgSync shows you exactly what would happen — and stops if something would break. Nothing gets written until you're ready.",
+      "Run a live test using an actual record from your org. SwiftPort shows you exactly what would happen — and stops if something would break. Nothing gets written until you're ready.",
     ai: true,
   },
   {
@@ -87,14 +87,14 @@ const features = [
     icon: BrainCircuit,
     title: "Set up a sync by describing it",
     description:
-      "Type what you want — \"sync Accounts to my Sandbox when they're created\" — and OrgSync pre-fills the entire setup. You just review and save.",
+      "Type what you want — \"sync Accounts to my Sandbox when they're created\" — and SwiftPort pre-fills the entire setup. You just review and save.",
     ai: true,
   },
   {
     icon: TrendingUp,
     title: "Get alerted when something looks wrong",
     description:
-      "OrgSync watches your sync activity and tells you if something seems off — like a sync that normally moves 200 records a day suddenly going quiet.",
+      "SwiftPort watches your sync activity and tells you if something seems off — like a sync that normally moves 200 records a day suddenly going quiet.",
     ai: true,
   },
   {
@@ -115,7 +115,7 @@ const features = [
     icon: Shield,
     title: "Your data never touches our servers",
     description:
-      "OrgSync connects directly from your source Salesforce org to your target Salesforce org. Records are never stored, buffered, or logged on our infrastructure — not even temporarily. Most tools pass your data through their own servers. We don't.",
+      "SwiftPort connects directly from your source Salesforce org to your target Salesforce org. Records are never stored, buffered, or logged on our infrastructure — not even temporarily. Most tools pass your data through their own servers. We don't.",
     ai: false,
   },
 ];
