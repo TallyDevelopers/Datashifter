@@ -29,19 +29,20 @@ export async function GET(
 
   const { data: customer } = await db
     .from("customers")
-    .select("id, name, email, plan_tier, created_at")
+    .select("id, name, email, plan_tier, is_suspended, created_at, admin_notes")
     .eq("id", customerId)
     .single();
 
   if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [{ data: orgs }, { data: syncs }, { data: tickets }] = await Promise.all([
+  const [{ data: orgs }, { data: syncs }, { data: tickets }, { data: migrations }] = await Promise.all([
     db.from("connected_orgs").select("id, label, instance_url, is_sandbox, status, connected_at").eq("customer_id", customerId),
     db.from("sync_configs").select("id, name, source_object, target_object, is_active, created_at").eq("customer_id", customerId),
     db.from("support_tickets").select("id, subject, status, priority, created_at, updated_at").eq("customer_id", customerId).order("updated_at", { ascending: false }).limit(10),
+    db.from("cpq_jobs").select("id, name, status, created_at, updated_at").eq("customer_id", customerId).order("updated_at", { ascending: false }).limit(20),
   ]);
 
-  return NextResponse.json({ customer, orgs: orgs ?? [], syncs: syncs ?? [], tickets: tickets ?? [] });
+  return NextResponse.json({ customer, orgs: orgs ?? [], syncs: syncs ?? [], tickets: tickets ?? [], migrations: migrations ?? [] });
 }
 
 export async function PATCH(
@@ -53,7 +54,9 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
-  const { plan_tier, is_suspended } = body as { plan_tier?: string; is_suspended?: boolean };
+  const { plan_tier, is_suspended, admin_notes } = body as {
+    plan_tier?: string; is_suspended?: boolean; admin_notes?: string;
+  };
   const db = createAdminClient();
 
   const updates: Record<string, unknown> = {};
@@ -78,6 +81,10 @@ export async function PATCH(
 
   if (is_suspended !== undefined) {
     updates.is_suspended = is_suspended;
+  }
+
+  if (admin_notes !== undefined) {
+    updates.admin_notes = admin_notes;
   }
 
   if (Object.keys(updates).length === 0) {

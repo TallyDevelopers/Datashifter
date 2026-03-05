@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Loader2, Building2, ArrowLeftRight, LifeBuoy,
   ShieldAlert, ShieldCheck, CheckCircle2, RefreshCw, Calendar,
-  ChevronRight,
+  ChevronRight, MoveRight, StickyNote, Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,6 +25,15 @@ interface CustomerDetail {
   plan_tier: string;
   is_suspended: boolean;
   created_at: string;
+  admin_notes?: string | null;
+}
+
+interface MigrationJob {
+  id: string;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ConnectedOrg {
@@ -68,11 +77,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
   const [orgs, setOrgs] = useState<ConnectedOrg[]>([]);
   const [syncs, setSyncs] = useState<SyncConfig[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [migrations, setMigrations] = useState<MigrationJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingPlan, setSavingPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("");
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [suspending, setSuspending] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
 
   async function fetchDetail() {
     setLoading(true);
@@ -82,9 +94,11 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
       if (!res.ok) throw new Error(data.error);
       setCustomer(data.customer);
       setSelectedPlan(data.customer.plan_tier);
+      setNotes(data.customer.admin_notes ?? "");
       setOrgs(data.orgs ?? []);
       setSyncs(data.syncs ?? []);
       setTickets(data.tickets ?? []);
+      setMigrations(data.migrations ?? []);
     } catch {
       toast.error("Failed to load customer");
     } finally {
@@ -132,6 +146,25 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
       setSuspending(false);
+    }
+  }
+
+  async function handleSaveNotes() {
+    if (!customer) return;
+    setSavingNotes(true);
+    try {
+      const res = await fetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admin_notes: notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success("Notes saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save notes");
+    } finally {
+      setSavingNotes(false);
     }
   }
 
@@ -321,6 +354,40 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
             </CardContent>
           </Card>
 
+          {/* Migration Jobs */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <MoveRight className="h-4 w-4 text-primary" />
+                Migration Jobs ({migrations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {migrations.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground">No migration jobs.</p>
+              ) : (
+                <div className="divide-y">
+                  {migrations.map((job) => (
+                    <div key={job.id} className="flex items-center justify-between px-5 py-3">
+                      <div>
+                        <p className="text-sm font-medium">{job.name}</p>
+                        <p className="text-xs text-muted-foreground">Updated {formatDate(job.updated_at)}</p>
+                      </div>
+                      <Badge variant="outline" className={cn("text-xs capitalize",
+                        job.status === "completed" ? "text-green-700 border-green-200 bg-green-50" :
+                        job.status === "running" ? "text-blue-700 border-blue-200 bg-blue-50" :
+                        job.status === "failed" ? "text-red-700 border-red-200 bg-red-50" :
+                        "text-muted-foreground"
+                      )}>
+                        {job.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Tickets */}
           <Card>
             <CardHeader className="pb-2">
@@ -356,6 +423,36 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
           </Card>
         </div>
       </div>
+
+      {/* Admin Notes — full width below the grid */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <StickyNote className="h-4 w-4 text-primary" />
+            Internal Admin Notes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <textarea
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Internal notes about this customer — never visible to the customer. E.g. 'On trial extension until March 15', 'Enterprise deal in progress'…"
+            className="w-full rounded-lg border bg-muted/30 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 resize-none"
+          />
+          <Button
+            size="sm"
+            onClick={handleSaveNotes}
+            disabled={savingNotes}
+            className="gradient-bg border-0 text-white hover:opacity-90"
+          >
+            {savingNotes
+              ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Saving…</>
+              : <><Save className="mr-1.5 h-3.5 w-3.5" />Save Notes</>
+            }
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Suspend dialog */}
       <AlertDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
