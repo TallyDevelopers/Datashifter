@@ -119,7 +119,8 @@ export async function GET(request: NextRequest) {
     return successRes;
   } catch (err) {
     console.error("Salesforce callback error:", err);
-    const errRes = NextResponse.redirect(`${APP_URL}/orgs?error=connection_failed`);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    const errRes = NextResponse.redirect(`${APP_URL}/orgs?error=${encodeURIComponent(message)}`);
     errRes.cookies.delete("sf_code_verifier");
     return errRes;
   }
