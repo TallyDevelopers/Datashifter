@@ -511,7 +511,8 @@ export default function NewCpqJobPage() {
             Back
           </Button>
           {step < 8 ? (
-            <Button onClick={goNext} disabled={!canProceed()} className="gradient-bg border-0 text-white hover:opacity-90">
+            <div className="relative group">
+              <Button onClick={goNext} disabled={!canProceed()} className="gradient-bg border-0 text-white hover:opacity-90">
               {step === 6 ? (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
@@ -524,6 +525,12 @@ export default function NewCpqJobPage() {
                 </>
               )}
             </Button>
+              {step === 2 && !canProceed() && (
+                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block whitespace-nowrap rounded-lg bg-foreground px-3 py-1.5 text-xs text-background shadow-lg">
+                  Click &ldquo;+ Add Step&rdquo; to add your object to the chain first
+                </div>
+              )}
+            </div>
           ) : (
             <Button onClick={handleSave} disabled={saving} className="gradient-bg border-0 text-white hover:opacity-90">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -798,7 +805,10 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
             size="sm"
             onClick={addStep}
             disabled={!newSourceObj || !newTargetObj}
-            className="border-primary/30 text-primary hover:bg-primary/5"
+            className={cn(
+              "border-primary/30 text-primary hover:bg-primary/5 transition-all",
+              newSourceObj && newTargetObj && "animate-pulse border-primary text-primary bg-primary/5"
+            )}
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add Step
@@ -843,10 +853,10 @@ function StepOrder({ state, setState }: {
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="rounded-xl border bg-amber-50 border-amber-200 px-4 py-3 mb-4 flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700">
-            <strong>CPQ tip:</strong> Standard order — <code>Product2</code> → <code>Pricebook2</code> → <code>PricebookEntry</code> → <code>SBQQ__Quote__c</code> → <code>SBQQ__QuoteLine__c</code>. Parent records must exist in the target org before children can reference them.
+        <div className="rounded-xl border bg-muted/40 border-muted px-4 py-3 mb-4 flex items-start gap-3">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            Drag steps to reorder. Parent objects must come before child objects — if a step fails, all subsequent steps are skipped to prevent broken foreign keys.
           </p>
         </div>
         {state.steps.map((s, i) => (
