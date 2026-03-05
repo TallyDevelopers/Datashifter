@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ArrowLeft, ArrowRight, Check, Building2, ArrowLeftRight,
   Settings, Filter, Columns, FileText, Loader2, Plus, Trash2,
@@ -305,33 +306,13 @@ function OrgObjectSelector({
               <p className="text-sm text-muted-foreground">No objects found. Click &ldquo;Sync Metadata&rdquo; to load objects from this org.</p>
             </div>
           ) : (
-            <>
-              <Input
-                placeholder="Search objects..."
-                value={objectSearch}
-                onChange={(e) => onObjectSearch(e.target.value)}
-                className="mb-3"
-              />
-              <div className="max-h-64 overflow-y-auto rounded-xl border divide-y">
-                {filtered.map((obj) => (
-                  <button
-                    key={obj.id}
-                    onClick={() => onObjectSelect(obj.api_name)}
-                    className={cn(
-                      "flex w-full items-center justify-between px-4 py-3 text-left transition-colors",
-                      selectedObject === obj.api_name ? "bg-primary/5" : "hover:bg-muted/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium truncate">{obj.label}</span>
-                      {obj.is_custom && <Badge variant="secondary" className="text-xs shrink-0">Custom</Badge>}
-                      <span className="text-xs text-muted-foreground font-mono truncate hidden sm:block">{obj.api_name}</span>
-                    </div>
-                    {selectedObject === obj.api_name && <Check className="h-4 w-4 text-primary shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </>
+            <SearchableSelect
+              options={objects.map((o) => ({ value: o.api_name, label: o.label, sublabel: o.api_name }))}
+              value={selectedObject}
+              onChange={onObjectSelect}
+              placeholder="Search and select an object..."
+              searchPlaceholder="Type to search objects..."
+            />
           )}
         </div>
       )}

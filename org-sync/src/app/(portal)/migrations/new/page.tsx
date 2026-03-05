@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ArrowLeft, Building2, List, GitBranch, Columns, Filter,
   Clock, Sparkles, FileText, Plus, Trash2, GripVertical,
@@ -664,6 +665,18 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
   const [newSourceObj, setNewSourceObj] = useState("");
   const [newTargetObj, setNewTargetObj] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [targetObjects, setTargetObjects] = useState<OrgObject[]>([]);
+  const [loadingTargetObjects, setLoadingTargetObjects] = useState(false);
+
+  useEffect(() => {
+    if (!targetOrg?.id) return;
+    setLoadingTargetObjects(true);
+    fetch(`/api/salesforce/orgs/${targetOrg.id}/objects`)
+      .then((r) => r.json())
+      .then((d) => setTargetObjects(d.objects ?? []))
+      .catch(() => setTargetObjects([]))
+      .finally(() => setLoadingTargetObjects(false));
+  }, [targetOrg?.id]);
 
   const addStep = () => {
     if (!newSourceObj || !newTargetObj) return;
@@ -737,25 +750,38 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Source Object</label>
-              <select
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              <SearchableSelect
+                options={sourceObjects.map((o) => ({ value: o.api_name, label: o.label, sublabel: o.api_name }))}
                 value={newSourceObj}
-                onChange={(e) => setNewSourceObj(e.target.value)}
-              >
-                <option value="">Select object…</option>
-                {sourceObjects.map((o) => (
-                  <option key={o.api_name} value={o.api_name}>{o.label} ({o.api_name})</option>
-                ))}
-              </select>
+                onChange={(v) => { setNewSourceObj(v); if (!newTargetObj) setNewTargetObj(v); }}
+                placeholder="Select object…"
+                searchPlaceholder="Search objects..."
+                emptyMessage="No objects found. Sync metadata first."
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Target Object (API Name)</label>
-              <input
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder={newSourceObj || "e.g. SBQQ__Quote__c"}
-                value={newTargetObj}
-                onChange={(e) => setNewTargetObj(e.target.value)}
-              />
+              <label className="text-xs text-muted-foreground">Target Object</label>
+              {loadingTargetObjects ? (
+                <div className="flex h-10 items-center gap-2 rounded-lg border px-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading...
+                </div>
+              ) : targetObjects.length > 0 ? (
+                <SearchableSelect
+                  options={targetObjects.map((o) => ({ value: o.api_name, label: o.label, sublabel: o.api_name }))}
+                  value={newTargetObj}
+                  onChange={setNewTargetObj}
+                  placeholder="Select object…"
+                  searchPlaceholder="Search objects..."
+                  emptyMessage="No objects found."
+                />
+              ) : (
+                <input
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={newSourceObj || "e.g. SBQQ__Quote__c"}
+                  value={newTargetObj}
+                  onChange={(e) => setNewTargetObj(e.target.value)}
+                />
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Step Label (optional)</label>
