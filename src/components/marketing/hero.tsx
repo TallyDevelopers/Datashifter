@@ -39,8 +39,8 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto mt-8 max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
         >
-          Move Salesforce data{" "}
-          <span className="gradient-text">any way you need it</span>
+          The Salesforce{" "}
+          <span className="gradient-text">data movement platform</span>
         </motion.h1>
 
         <motion.p
@@ -49,9 +49,9 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Live bidirectional sync between orgs. Bulk migrations for any object. 
-          CPQ and Revenue Cloud Accelerator templates. AI that catches problems before they happen.
-          All in one platform — no code, no engineers required.
+          Live bidirectional org sync. Mass migrations for any Salesforce object.
+          CPQ and Revenue Cloud Accelerator templates. AI pre-flight that catches problems before they cost you.
+          No code. No engineers. No data ever stored on our servers.
         </motion.p>
 
         <motion.div

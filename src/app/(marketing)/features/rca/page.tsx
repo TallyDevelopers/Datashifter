@@ -10,14 +10,26 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Salesforce Revenue Cloud Accelerator (RCA) Migration | SwiftPort",
+  title: "Salesforce Revenue Cloud Accelerator Migration — RCA & Billing | SwiftPort",
   description:
-    "Migrate Salesforce Revenue Cloud Accelerator (RCA) and Billing objects between orgs in dependency order. Assets, Subscriptions, Invoices, Orders, and more — no code, no broken lookups.",
+    "Migrate Salesforce Revenue Cloud Accelerator (RCA) and Billing objects between orgs in the correct dependency order. Assets, Subscriptions, Contracts, Orders, Invoices — no broken lookups, no code.",
   alternates: { canonical: "https://swiftport.io/features/rca" },
+  keywords: [
+    "Salesforce Revenue Cloud Accelerator migration",
+    "Salesforce RCA migration",
+    "Salesforce Billing migration",
+    "migrate Salesforce Revenue Cloud between orgs",
+    "Salesforce RCA data migration tool",
+    "Revenue Cloud Accelerator org migration",
+    "Salesforce billing objects migration",
+    "migrate Salesforce invoices subscriptions",
+    "Salesforce Revenue Cloud sandbox migration",
+    "Salesforce RCA org to org",
+  ],
   openGraph: {
     title: "Salesforce Revenue Cloud Accelerator (RCA) Migration",
     description:
-      "Migrate RCA and Billing objects between Salesforce orgs in the correct dependency order. Assets, Subscriptions, Invoices — no broken lookups.",
+      "Migrate RCA Assets, Subscriptions, Contracts, Orders, and Invoices between Salesforce orgs in the correct dependency order. No broken lookups.",
     url: "https://swiftport.io/features/rca",
   },
 };

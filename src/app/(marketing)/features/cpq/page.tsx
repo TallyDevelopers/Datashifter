@@ -9,14 +9,26 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Salesforce CPQ Migration — Move CPQ Data Between Orgs | SwiftPort",
+  title: "Salesforce CPQ Migration — Migrate CPQ Data Between Orgs | SwiftPort",
   description:
-    "Migrate Salesforce CPQ objects between orgs in the correct dependency order. Price Books, Products, Pricebook Entries, Quote Templates, and custom CPQ objects — handled automatically.",
+    "Migrate Salesforce CPQ objects between orgs in the correct dependency order. Price Books, Products, Pricebook Entries, Price Rules, Discount Schedules — no broken lookups, no manual ordering.",
   alternates: { canonical: "https://swiftport.io/features/cpq" },
+  keywords: [
+    "Salesforce CPQ migration",
+    "migrate Salesforce CPQ between orgs",
+    "Salesforce CPQ data migration tool",
+    "CPQ price book migration",
+    "Salesforce CPQ sandbox migration",
+    "CPQ product catalog migration",
+    "Salesforce CPQ org to org migration",
+    "migrate Salesforce CPQ objects",
+    "Salesforce CPQ discount schedule migration",
+    "Salesforce CPQ price rules migration",
+  ],
   openGraph: {
-    title: "Salesforce CPQ Migration — Move CPQ Data Between Orgs",
+    title: "Salesforce CPQ Migration — Migrate CPQ Data Between Orgs",
     description:
-      "Migrate Salesforce CPQ objects in the correct dependency order. Price Books, Products, Pricebook Entries, and more — no manual ordering required.",
+      "Migrate CPQ Price Books, Products, Pricebook Entries, Price Rules, and Discount Schedules between Salesforce orgs in the correct dependency order. No broken lookups.",
     url: "https://swiftport.io/features/cpq",
   },
 };

@@ -10,14 +10,23 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Live Sync — Real-Time Bidirectional Salesforce Org Sync | SwiftPort",
+  title: "Live Sync — Automatically Sync Data Between Salesforce Orgs | SwiftPort",
   description:
-    "Keep two Salesforce orgs in sync automatically, every 2 minutes. Bidirectional field mapping, smart filters, picklist support, and real-time error logs — no code, no middleware.",
+    "Keep two Salesforce orgs in sync automatically, every 2 minutes. Bidirectional field mapping, filters with picklist values, Record Type mapping, Owner assignment, and real-time error logs. No code required.",
   alternates: { canonical: "https://swiftport.io/features/live-sync" },
+  keywords: [
+    "sync data between Salesforce orgs",
+    "real-time Salesforce org sync",
+    "bidirectional Salesforce sync",
+    "automatic Salesforce data sync",
+    "Salesforce sandbox production sync",
+    "Salesforce org to org live sync",
+    "Salesforce field mapping no code",
+  ],
   openGraph: {
-    title: "Live Sync — Real-Time Bidirectional Salesforce Org Sync",
+    title: "Live Sync — Automatically Sync Data Between Salesforce Orgs",
     description:
-      "Keep two Salesforce orgs in sync automatically, every 2 minutes. Bidirectional field mapping, filters, and real-time logs — no code needed.",
+      "Two Salesforce orgs. One sync config. Changes appear in the other org within 2 minutes — bidirectionally, with filters, field mapping, and AI pre-flight.",
     url: "https://swiftport.io/features/live-sync",
   },
 };

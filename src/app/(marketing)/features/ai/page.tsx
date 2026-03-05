@@ -9,14 +9,23 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "AI Features — Intelligent Salesforce Sync with Claude | SwiftPort",
+  title: "AI Features — Smart Salesforce Data Migration & Sync Analysis | SwiftPort",
   description:
-    "SwiftPort's AI assistant powered by Claude analyzes your sync configs, warns about mapping issues, suggests field matches, explains errors in plain English, and detects anomalies — automatically.",
+    "SwiftPort's AI catches field mapping errors before they happen, explains Salesforce errors in plain English, suggests fixes, auto-maps fields, and monitors for anomalies. Powered by Claude (Anthropic).",
   alternates: { canonical: "https://swiftport.io/features/ai" },
+  keywords: [
+    "AI Salesforce data migration",
+    "Salesforce field mapping AI",
+    "AI Salesforce sync assistant",
+    "Salesforce error analysis AI",
+    "AI pre-flight Salesforce migration",
+    "Salesforce AI integration tool",
+    "smart Salesforce data movement",
+  ],
   openGraph: {
-    title: "AI Features — Intelligent Salesforce Sync with Claude",
+    title: "AI Features — Smart Salesforce Data Migration & Sync Analysis",
     description:
-      "SwiftPort's AI warns about mapping issues, explains errors in plain English, suggests fixes, and detects anomalies — automatically.",
+      "Pre-flight analysis, auto-mapping, Sync Assistant chatbot, plain English summaries, and anomaly detection — AI woven into every step of your Salesforce data movement.",
     url: "https://swiftport.io/features/ai",
   },
 };

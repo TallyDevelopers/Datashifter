@@ -1,29 +1,29 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SwiftPort — Move Salesforce Data Any Way You Need It",
+  title: "SwiftPort — The Salesforce Data Movement Platform",
   description:
-    "Live bidirectional sync between orgs. Bulk migrations for any object. CPQ and Revenue Cloud Accelerator templates. AI that catches problems before they happen. No code, no engineers required.",
+    "Move data between Salesforce orgs your way. Live bidirectional sync every 2 minutes. Mass migrations for any object. CPQ and Revenue Cloud Accelerator templates. AI that catches problems before they happen. No code.",
   keywords: [
-    "sync two Salesforce orgs",
+    "move data between Salesforce orgs",
+    "Salesforce org to org migration",
+    "Salesforce mass data migration tool",
+    "sync two Salesforce orgs automatically",
     "bidirectional Salesforce org sync",
-    "Salesforce data synchronization tool",
-    "connect multiple Salesforce orgs",
-    "Salesforce no-code integration",
-    "real-time Salesforce sync",
-    "Salesforce field mapping",
-    "Salesforce cross org data sync",
-    "Salesforce CPQ migration",
-    "Revenue Cloud Accelerator migration",
-    "Salesforce RCA migration",
-    "Salesforce bulk data migration",
-    "Salesforce org migration tool",
-    "Salesforce mass data migration",
+    "Salesforce CPQ data migration",
+    "Salesforce Revenue Cloud Accelerator migration",
+    "Salesforce sandbox to production data migration",
+    "Salesforce bulk record migration",
+    "Salesforce no-code data movement",
+    "Salesforce org consolidation tool",
+    "migrate Salesforce objects between orgs",
+    "Salesforce data transfer tool",
+    "Salesforce field mapping no code",
   ],
   openGraph: {
-    title: "SwiftPort — Move Salesforce Data Any Way You Need It",
+    title: "SwiftPort — The Salesforce Data Movement Platform",
     description:
-      "Live sync, bulk migrations, CPQ & RCA templates, and AI pre-flight — all in one platform. No code, no engineers required.",
+      "Live sync, mass migrations, CPQ & Revenue Cloud templates, and AI pre-flight. Move Salesforce data any way you need it — no code.",
     url: "https://swiftport.io",
   },
   alternates: {

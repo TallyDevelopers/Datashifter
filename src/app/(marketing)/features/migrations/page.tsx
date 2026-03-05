@@ -10,14 +10,26 @@ import { Button } from "@/components/ui/button";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/motion/fade-in";
 
 export const metadata: Metadata = {
-  title: "Mass Migrations — Bulk Data Transfer Between Salesforce Orgs | SwiftPort",
+  title: "Mass Migrations — Bulk Data Migration Between Salesforce Orgs | SwiftPort",
   description:
-    "Move any Salesforce object — Accounts, Contacts, Orders, Opportunities, custom objects — from one org to another in bulk. Save and re-run migrations. Full run history. No code.",
+    "Migrate any Salesforce object between orgs in bulk — Accounts, Contacts, Opportunities, Orders, custom objects. Multi-step dependency-aware jobs, deduplication match strategy, full run history. No code, no data loaders.",
   alternates: { canonical: "https://swiftport.io/features/migrations" },
+  keywords: [
+    "Salesforce mass data migration",
+    "bulk Salesforce data migration",
+    "migrate Salesforce objects between orgs",
+    "Salesforce org to org data migration",
+    "Salesforce bulk record migration tool",
+    "Salesforce org consolidation migration",
+    "Salesforce sandbox data migration",
+    "Salesforce data loader alternative",
+    "migrate Salesforce custom objects",
+    "Salesforce data migration no code",
+  ],
   openGraph: {
-    title: "Mass Migrations — Bulk Data Transfer Between Salesforce Orgs",
+    title: "Mass Migrations — Bulk Data Migration Between Salesforce Orgs",
     description:
-      "Move any Salesforce object from one org to another in bulk. Save and re-run migrations. Full run history. No code.",
+      "Move any Salesforce object between orgs in bulk. Multi-step, dependency-aware jobs with deduplication, filters, field mapping, and full run history.",
     url: "https://swiftport.io/features/migrations",
   },
 };
