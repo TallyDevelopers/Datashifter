@@ -105,6 +105,8 @@ interface OrgField {
   label: string;
   field_type: string;
   picklist_values?: string[];
+  is_required?: boolean;
+  is_createable?: boolean;
 }
 
 interface FieldMapping {
