@@ -1826,34 +1826,38 @@ export default function NewSyncPage() {
                     );
                     return (
                       <>
-                        <div key={`src-${i}`} className="relative">
-                          <select
+                        <div key={`src-${i}`}>
+                          <SearchableSelect
+                            options={sourceFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
                             value={mapping.source_field}
-                            onChange={(e) => { updateMapping(i, "source_field", e.target.value); setAiAnalysis(null); }}
-                            className="w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
-                          >
-                            {sourceFields.map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                            onChange={(v) => { updateMapping(i, "source_field", v); setAiAnalysis(null); }}
+                            searchPlaceholder="Search source fields..."
+                            grouped
+                          />
                         </div>
                         <ArrowRight key={`arrow-${i}`} className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div key={`tgt-${i}`} className="relative">
-                          <select
+                        <div key={`tgt-${i}`} className={cn(
+                          "rounded-lg",
+                          aiResult?.status === "error" && "ring-2 ring-red-400",
+                          aiResult?.status === "warning" && "ring-2 ring-yellow-400",
+                        )}>
+                          <SearchableSelect
+                            options={targetFields.filter((f) => f.is_createable || f.is_updateable).map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
                             value={mapping.target_field}
-                            onChange={(e) => { updateMapping(i, "target_field", e.target.value); setAiAnalysis(null); }}
-                            className={cn(
-                              "w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20",
-                              aiResult?.status === "error" && "border-red-400",
-                              aiResult?.status === "warning" && "border-yellow-400",
-                            )}
-                          >
-                            {targetFields.filter((f) => f.is_createable || f.is_updateable).map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                            onChange={(v) => { updateMapping(i, "target_field", v); setAiAnalysis(null); }}
+                            searchPlaceholder="Search target fields..."
+                            grouped
+                          />
                         </div>
                         {/* AI status icon per row */}
                         <div key={`ai-${i}`} className="flex items-center justify-center w-5">

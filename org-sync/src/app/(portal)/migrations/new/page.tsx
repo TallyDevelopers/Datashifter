@@ -1004,27 +1004,33 @@ function StepMappings({ state, setState, loadStepFields, autoMap }: {
                       </div>
                       {s.field_mappings.map((m, mapIdx) => (
                         <div key={mapIdx} className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-center">
-                          <select
-                            className="w-full rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          <SearchableSelect
+                            options={s.sourceFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
                             value={m.source_field}
-                            onChange={(e) => updateMapping(stepIdx, mapIdx, "source_field", e.target.value)}
-                          >
-                            <option value="">Source…</option>
-                            {s.sourceFields.map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMapping(stepIdx, mapIdx, "source_field", v)}
+                            placeholder="Source…"
+                            searchPlaceholder="Search source fields..."
+                            grouped
+                          />
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <select
-                            className="w-full rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          <SearchableSelect
+                            options={s.targetFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
                             value={m.target_field}
-                            onChange={(e) => updateMapping(stepIdx, mapIdx, "target_field", e.target.value)}
-                          >
-                            <option value="">Target…</option>
-                            {s.targetFields.map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMapping(stepIdx, mapIdx, "target_field", v)}
+                            placeholder="Target…"
+                            searchPlaceholder="Search target fields..."
+                            grouped
+                          />
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeMapping(stepIdx, mapIdx)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -1120,16 +1126,20 @@ function StepFilters({ state, setState }: {
                 return (
                   <div key={filterIdx} className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground w-4">{filterIdx === 0 ? "IF" : "AND"}</span>
-                    <select
-                      className="rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    <SearchableSelect
+                      options={s.sourceFields.map((sf) => ({
+                        value: sf.api_name,
+                        label: sf.label,
+                        sublabel: sf.api_name,
+                        required: sf.is_required,
+                      }))}
                       value={f.field}
-                      onChange={(e) => updateFilter(stepIdx, filterIdx, "field", e.target.value)}
-                    >
-                      <option value="">Field…</option>
-                      {s.sourceFields.map((sf) => (
-                        <option key={sf.api_name} value={sf.api_name}>{sf.label} ({sf.api_name})</option>
-                      ))}
-                    </select>
+                      onChange={(v) => updateFilter(stepIdx, filterIdx, "field", v)}
+                      placeholder="Field…"
+                      searchPlaceholder="Search fields..."
+                      className="w-40"
+                      grouped
+                    />
                     <select
                       className="rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
                       value={f.operator}
