@@ -7,7 +7,7 @@ const SF_LOGIN_URLS: Record<SalesforceEnv, string> = {
   sandbox: "https://test.salesforce.com",
 };
 
-const OAUTH_SCOPES = ["full", "refresh_token", "offline_access"].join(" ");
+const OAUTH_SCOPES = ["api", "id", "refresh_token", "offline_access"].join(" ");
 
 /** Generate a PKCE code_verifier (43–128 char URL-safe random string). */
 export function generateCodeVerifier(): string {
@@ -24,8 +24,8 @@ export function buildAuthUrl(
   env: SalesforceEnv = "production",
   codeChallenge: string
 ): string {
-  const clientId = process.env.SALESFORCE_CLIENT_ID;
-  const callbackUrl = process.env.SALESFORCE_CALLBACK_URL;
+  const clientId = process.env.SALESFORCE_CLIENT_ID?.trim();
+  const callbackUrl = process.env.SALESFORCE_CALLBACK_URL?.trim();
   if (!clientId || !callbackUrl) {
     throw new Error("SALESFORCE_CLIENT_ID or SALESFORCE_CALLBACK_URL not set");
   }
@@ -36,7 +36,7 @@ export function buildAuthUrl(
     redirect_uri: callbackUrl,
     scope: OAUTH_SCOPES,
     state,
-    prompt: "login consent",
+    prompt: "consent",
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
   });
@@ -135,33 +135,49 @@ export interface SalesforceOrgInfo {
 
 export async function getOrgInfo(
   accessToken: string,
-  instanceUrl: string
+  instanceUrl: string,
+  identityUrl?: string
 ): Promise<SalesforceOrgInfo> {
-  const res = await fetch(
-    `${instanceUrl}/services/data/v59.0/query?q=${encodeURIComponent(
-      "SELECT Id, Name, IsSandbox FROM Organization LIMIT 1"
-    )}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  // Use the identity URL from the token response if available — faster than SOQL
+  const idUrl = identityUrl ?? `${instanceUrl}/services/oauth2/userinfo`;
+
+  const res = await fetch(idUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Failed to fetch org info: ${err}`);
   }
 
-  const data = await res.json();
-  const org = data.records?.[0];
-  if (!org) throw new Error("No org record returned");
-
-  return {
-    orgId: org.Id,
-    orgName: org.Name,
-    isSandbox: org.IsSandbox ?? false,
-    instanceUrl,
+  const data = await res.json() as {
+    organization_id?: string;
+    org_id?: string;
+    organization_name?: string;
+    urls?: { profile?: string };
+    is_sandbox?: boolean;
+    // identity URL shape
+    user_id?: string;
   };
+
+  // /services/oauth2/userinfo returns organization_id and organization_name
+  const orgId = data.organization_id ?? data.org_id ?? "";
+  const orgName = data.organization_name ?? instanceUrl;
+  const isSandbox = data.is_sandbox ?? (instanceUrl.includes("sandbox") || instanceUrl.includes("test."));
+
+  if (!orgId) {
+    // Fallback: SOQL query if userinfo doesn't have org ID
+    const soqlRes = await fetch(
+      `${instanceUrl}/services/data/v59.0/query?q=${encodeURIComponent("SELECT Id, Name, IsSandbox FROM Organization LIMIT 1")}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (soqlRes.ok) {
+      const soqlData = await soqlRes.json();
+      const org = soqlData.records?.[0];
+      if (org) return { orgId: org.Id, orgName: org.Name, isSandbox: org.IsSandbox ?? false, instanceUrl };
+    }
+    throw new Error("Could not determine org ID");
+  }
+
+  return { orgId, orgName, isSandbox, instanceUrl };
 }

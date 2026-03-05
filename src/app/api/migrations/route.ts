@@ -61,7 +61,9 @@ export async function POST(request: NextRequest) {
     .eq("customer_id", customer.id)
     .in("id", [source_org_id, target_org_id]);
 
-  if (!orgs || orgs.length < 2) {
+  // When source and target are the same org, the IN query returns 1 row — that's fine.
+  const uniqueOrgIds = [...new Set([source_org_id, target_org_id])];
+  if (!orgs || orgs.length < uniqueOrgIds.length) {
     return NextResponse.json({ error: "One or more orgs not found or not owned by you" }, { status: 403 });
   }
 
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
     target_object: string;
     field_mappings?: unknown[];
     filters?: unknown[];
+    match_strategy?: unknown;
     record_type_config?: unknown;
     owner_config?: unknown;
   }>).map((s) => ({
@@ -102,6 +105,7 @@ export async function POST(request: NextRequest) {
     target_object: s.target_object,
     field_mappings: s.field_mappings ?? [],
     filters: s.filters ?? [],
+    match_strategy: s.match_strategy ?? { type: "none" },
     record_type_config: s.record_type_config ?? { strategy: "none" },
     owner_config: s.owner_config ?? null,
   }));

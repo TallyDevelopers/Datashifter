@@ -3,20 +3,23 @@ import { Zap } from "lucide-react";
 
 const footerSections = [
   {
-    title: "Product",
+    title: "Features",
     links: [
-      { label: "Features", href: "/#features" },
-      { label: "How It Works", href: "/#how-it-works" },
-      { label: "AI Features", href: "/#ai" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "Live Sync", href: "/features/live-sync" },
+      { label: "Mass Migrations", href: "/features/migrations" },
+      { label: "CPQ Migrations", href: "/features/cpq" },
+      { label: "RCA Migrations", href: "/features/rca" },
+      { label: "AI Features", href: "/features/ai" },
     ],
   },
   {
     title: "Resources",
     links: [
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Security", href: "/security" },
       { label: "Documentation", href: "/docs" },
       { label: "About", href: "/about" },
-      { label: "Contact", href: "/about#contact" },
     ],
   },
   {
@@ -50,7 +53,7 @@ export function Footer() {
               <span className="text-lg font-bold tracking-tight">OrgSync</span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Bidirectional Salesforce org synchronization. Connect two orgs, map fields visually, and keep your data in sync — automatically, every 2 minutes.
+              Live sync, bulk migrations, CPQ & RCA templates, and AI — all in one platform. Move Salesforce data any way you need it, without code.
             </p>
           </div>
           {footerSections.map((section) => (

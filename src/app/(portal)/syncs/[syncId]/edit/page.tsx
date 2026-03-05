@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ArrowLeft, ArrowRight, Check, Building2, ArrowLeftRight,
   Settings, Filter, Columns, FileText, Loader2, Plus, Trash2,
   ChevronDown, Zap, RefreshCw, Sparkles, AlertTriangle, XCircle,
   CheckCircle2, FlaskConical, ShieldCheck, ShieldX, TriangleAlert,
-  UserCog, Users, RotateCcw, User, ArrowRightLeft, Tag,
+  UserCog, Users, RotateCcw, User, ArrowRightLeft, Tag, Search, Target,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/portal/breadcrumbs";
 import { toast } from "sonner";
@@ -114,6 +115,7 @@ interface BuilderState {
   filters: FilterRule[];
   record_type_config: RecordTypeConfig;
   field_mappings: FieldMapping[];
+  match_strategy: { type: "none" | "field" | "name"; field?: string };
   max_retries: number;
   retry_on_partial: boolean;
   notify_on_failure: boolean;
@@ -145,33 +147,46 @@ const STEPS = [
   { id: 5, label: "Filters", icon: Filter },
   { id: 6, label: "Rec. Types", icon: Tag },
   { id: 7, label: "Fields", icon: Columns },
-  { id: 8, label: "Retry", icon: RotateCcw },
-  { id: 9, label: "Review", icon: FileText },
+  { id: 8, label: "Matching", icon: Search },
+  { id: 9, label: "Retry", icon: RotateCcw },
+  { id: 10, label: "Review", icon: FileText },
 ];
 
 function StepBar({ current }: { current: number }) {
+  const currentStep = STEPS.find((s) => s.id === current);
   return (
-    <div className="flex items-center gap-0 mb-8">
-      {STEPS.map((step, i) => (
-        <div key={step.id} className="flex items-center flex-1 last:flex-none">
-          <div className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all",
-            current === step.id ? "gradient-bg text-white shadow-lg shadow-primary/25" :
-            current > step.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-          )}>
-            {current > step.id ? <Check className="h-4 w-4" /> : step.id}
+    <div className="mb-8 space-y-3">
+      {/* Dot track */}
+      <div className="flex items-center">
+        {STEPS.map((step, i) => (
+          <div key={step.id} className="flex items-center flex-1 last:flex-none">
+            <div className={cn(
+              "flex shrink-0 items-center justify-center rounded-full font-semibold transition-all",
+              current === step.id
+                ? "h-8 w-8 gradient-bg text-white shadow-md shadow-primary/30 text-xs"
+                : current > step.id
+                ? "h-6 w-6 bg-primary/15 text-primary text-[10px]"
+                : "h-6 w-6 bg-muted text-muted-foreground text-[10px]"
+            )}>
+              {current > step.id ? <Check className="h-3 w-3" /> : step.id}
+            </div>
+            {i < STEPS.length - 1 && (
+              <div className={cn(
+                "flex-1 h-px mx-1.5 transition-colors",
+                current > step.id ? "bg-primary/30" : "bg-border"
+              )} />
+            )}
           </div>
-          <span className={cn(
-            "ml-2 text-sm font-medium hidden sm:block",
-            current === step.id ? "text-foreground" : "text-muted-foreground"
-          )}>
-            {step.label}
-          </span>
-          {i < STEPS.length - 1 && (
-            <div className={cn("mx-3 flex-1 h-px", current > step.id ? "bg-primary/30" : "bg-border")} />
-          )}
+        ))}
+      </div>
+      {/* Current step label + progress text */}
+      <div className="flex items-center justify-between px-0.5">
+        <div className="flex items-center gap-2">
+          {currentStep && <currentStep.icon className="h-4 w-4 text-primary" />}
+          <span className="text-sm font-semibold text-foreground">{currentStep?.label}</span>
         </div>
-      ))}
+        <span className="text-xs text-muted-foreground">Step {current} of {STEPS.length}</span>
+      </div>
     </div>
   );
 }
@@ -724,6 +739,152 @@ function RecordTypeStep({
   );
 }
 
+// ─── Match Strategy Step ──────────────────────────────────────────────────────
+
+function MatchStrategyStep({
+  matchStrategy,
+  targetFields,
+  targetObjectLabel,
+  onChange,
+  onEnter,
+}: {
+  matchStrategy: { type: "none" | "field" | "name"; field?: string };
+  targetFields: OrgField[];
+  targetObjectLabel: string;
+  onChange: (ms: { type: "none" | "field" | "name"; field?: string }) => void;
+  onEnter?: () => void;
+}) {
+  useEffect(() => { onEnter?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const options = [
+    {
+      type: "none" as const,
+      icon: <ShieldCheck className="h-6 w-6" />,
+      color: "text-green-600",
+      selectedBg: "bg-green-50 border-green-500 ring-2 ring-green-200",
+      label: "Always Create New",
+      desc: "OrgSync only manages records it creates itself. Any records that already exist in the target org are left completely alone — no risk of overwriting existing data.",
+      bestFor: "Best for clean target orgs or when you don't care about pre-existing records.",
+      badge: "Recommended",
+      badgeClass: "bg-green-100 text-green-700",
+    },
+    {
+      type: "field" as const,
+      icon: <Search className="h-6 w-6" />,
+      color: "text-blue-600",
+      selectedBg: "bg-blue-50 border-blue-500 ring-2 ring-blue-200",
+      label: "Match by Field",
+      desc: "Before creating a new record, OrgSync checks if a record with the same value already exists in the target org using a field you choose (e.g. Email, Account Number). If it finds one, it links to it and updates it instead of creating a duplicate.",
+      bestFor: "Best when your target org already has data you want to keep in sync.",
+      badge: null,
+      badgeClass: "",
+    },
+    {
+      type: "name" as const,
+      icon: <Target className="h-6 w-6" />,
+      color: "text-purple-600",
+      selectedBg: "bg-purple-50 border-purple-500 ring-2 ring-purple-200",
+      label: "Match by Name",
+      desc: "Same as above but always uses the standard Name field to find existing records. Quick to set up — no field selection needed.",
+      bestFor: "Best for Accounts, Contacts, or any object where Name is unique enough.",
+      badge: null,
+      badgeClass: "",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold">Existing Record Matching</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          What should OrgSync do when it finds records in <span className="font-medium text-foreground">{targetObjectLabel || "the target org"}</span> that it has never managed before?
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {options.map((opt) => {
+          const selected = matchStrategy.type === opt.type;
+          return (
+            <button
+              key={opt.type}
+              type="button"
+              onClick={() => onChange({ type: opt.type, field: matchStrategy.field })}
+              className={cn(
+                "w-full rounded-xl border p-4 text-left transition-all",
+                selected ? opt.selectedBg : "hover:border-primary/40 hover:bg-muted/30"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn("shrink-0 rounded-lg p-2", selected ? "bg-muted/60" : "bg-muted/60")}>
+                  <span className={selected ? opt.color : "text-muted-foreground"}>{opt.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold">{opt.label}</p>
+                    {opt.badge && (
+                      <span className={cn("text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5", opt.badgeClass)}>{opt.badge}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
+                  <p className="mt-1.5 text-[11px] font-medium text-muted-foreground/70 italic">{opt.bestFor}</p>
+                </div>
+                <div className={cn(
+                  "shrink-0 mt-1 h-4 w-4 rounded-full border-2 transition-all flex items-center justify-center",
+                  selected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                )}>
+                  {selected && <Check className="h-3 w-3 text-white" />}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {matchStrategy.type === "field" && (
+        <div className="rounded-xl border bg-blue-50/50 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">Which field should we match on?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Pick a field that uniquely identifies a record — like Email, Account Number, or an external ID. OrgSync will search the target org using this field before creating anything new.
+            </p>
+          </div>
+          <SearchableSelect
+            options={targetFields
+              .filter((f) => ["string", "email", "phone", "url", "id", "reference", "double", "integer", "currency", "textarea"].includes(f.field_type))
+              .map((f) => ({
+                value: f.api_name,
+                label: f.label,
+                sublabel: f.api_name,
+              }))}
+            value={matchStrategy.field ?? ""}
+            onChange={(v) => onChange({ type: "field", field: v })}
+            placeholder="Select a matching field…"
+            searchPlaceholder="Search fields…"
+            emptyMessage="No fields available. Go back and select objects first."
+          />
+          {matchStrategy.field && (
+            <div className="flex items-start gap-2 rounded-lg bg-blue-100/60 px-3 py-2 text-xs text-blue-800">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-600" />
+              <span>
+                OrgSync will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">{matchStrategy.field}</span> matches the source value. If found, it links and updates. If not, it creates a new record.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {matchStrategy.type === "name" && (
+        <div className="flex items-start gap-2 rounded-xl border bg-purple-50/50 px-4 py-3 text-xs text-purple-800">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-purple-600" />
+          <span>
+            OrgSync will search <span className="font-mono font-semibold">{targetObjectLabel}</span> for records where <span className="font-mono font-semibold">Name</span> matches the source record name. Works best when names are unique in your org.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EditSyncPage() {
   const router = useRouter();
   const params = useParams();
@@ -803,6 +964,7 @@ export default function EditSyncPage() {
     filters: [],
     record_type_config: defaultRecordTypeConfig,
     field_mappings: [],
+    match_strategy: { type: "none" },
     max_retries: 3,
     retry_on_partial: true,
     notify_on_failure: true,
@@ -902,6 +1064,7 @@ export default function EditSyncPage() {
           filters,
           record_type_config: sync.record_type_config ?? defaultRecordTypeConfig,
           field_mappings: sync.field_mappings ?? [],
+          match_strategy: sync.match_strategy ?? { type: "none" },
           max_retries: sync.max_retries ?? 3,
           retry_on_partial: sync.retry_on_partial ?? true,
           notify_on_failure: sync.notify_on_failure ?? true,
@@ -1129,6 +1292,7 @@ export default function EditSyncPage() {
           filters: state.filters.map(({ field, operator, value }) => ({ field, operator, value })),
           record_type_config: state.record_type_config,
           field_mappings: state.field_mappings,
+          match_strategy: state.match_strategy,
           max_retries: state.max_retries,
           retry_on_partial: state.retry_on_partial,
           notify_on_failure: state.notify_on_failure,
@@ -1174,7 +1338,11 @@ export default function EditSyncPage() {
       if (state.direction === "bidirectional" && state.owner_config.reverse_strategy !== "passthrough" && (state.owner_config.reverse_users ?? []).length === 0) return false;
       return true;
     }
-    if (step === 9) return !!state.name.trim() && state.field_mappings.length > 0;
+    if (step === 8) {
+      if (state.match_strategy.type === "field") return !!state.match_strategy.field;
+      return true;
+    }
+    if (step === 10) return !!state.name.trim() && state.field_mappings.length > 0;
     return true;
   }
 
@@ -1190,6 +1358,15 @@ export default function EditSyncPage() {
       checkTrackingFields();
     }
     setStep((s) => s + 1);
+  }
+
+  async function loadTargetFieldsForMatch() {
+    if (!state.target_org_id || !state.target_object || targetFields.length > 0) return;
+    try {
+      const res = await fetch(`/api/salesforce/orgs/${state.target_org_id}/objects/${state.target_object}/fields`);
+      const data = await res.json();
+      setTargetFields(data.fields ?? []);
+    } catch { /* silent */ }
   }
 
   async function checkTrackingFields() {
@@ -1616,23 +1793,36 @@ export default function EditSyncPage() {
                     );
                     return (
                       <>
-                        <div key={`src-${i}`} className="relative">
-                          <select value={mapping.source_field} onChange={(e) => { updateMapping(i, "source_field", e.target.value); setAiAnalysis(null); }}
-                            className="w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20">
-                            {sourceFields.map((f) => <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        <div key={`src-${i}`}>
+                          <SearchableSelect
+                            options={sourceFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                            }))}
+                            value={mapping.source_field}
+                            onChange={(v) => { updateMapping(i, "source_field", v); setAiAnalysis(null); }}
+                            searchPlaceholder="Search source fields..."
+                          />
                         </div>
                         <ArrowRight key={`arrow-${i}`} className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div key={`tgt-${i}`} className="relative">
-                          <select value={mapping.target_field} onChange={(e) => { updateMapping(i, "target_field", e.target.value); setAiAnalysis(null); }}
-                            className={cn("w-full h-9 rounded-lg border bg-background pl-3 pr-8 text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20",
-                              aiResult?.status === "error" && "border-red-400",
-                              aiResult?.status === "warning" && "border-yellow-400",
-                            )}>
-                            {targetFields.filter((f) => f.is_createable || f.is_updateable).map((f) => <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                        <div key={`tgt-${i}`} className={cn(
+                          "rounded-lg",
+                          aiResult?.status === "error" && "ring-2 ring-red-400",
+                          aiResult?.status === "warning" && "ring-2 ring-yellow-400",
+                        )}>
+                          <SearchableSelect
+                            options={targetFields.filter((f) => f.is_createable || f.is_updateable).map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
+                            value={mapping.target_field}
+                            onChange={(v) => { updateMapping(i, "target_field", v); setAiAnalysis(null); }}
+                            searchPlaceholder="Search target fields..."
+                            grouped
+                          />
                         </div>
                         <div key={`ai-${i}`} className="flex items-center justify-center w-5">
                           {aiResult?.status === "error" && <XCircle className="h-4 w-4 text-red-500" aria-label={aiResult.message ?? ""} />}
@@ -1644,6 +1834,46 @@ export default function EditSyncPage() {
                     );
                   })}
                 </div>
+                {/* Unmapped required target fields */}
+                {(() => {
+                  const mappedTargets = new Set(state.field_mappings.map((m) => m.target_field));
+                  const unmapped = targetFields.filter(
+                    (f) => f.is_required && f.is_createable && !mappedTargets.has(f.api_name)
+                  );
+                  if (unmapped.length === 0) return null;
+                  return (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <p className="text-xs font-semibold text-red-700">
+                          {unmapped.length} required {unmapped.length === 1 ? "field" : "fields"} not mapped — records will fail without {unmapped.length === 1 ? "it" : "them"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {unmapped.map((f) => (
+                          <button
+                            key={f.api_name}
+                            type="button"
+                            onClick={() => setState((p) => ({
+                              ...p,
+                              field_mappings: [
+                                ...p.field_mappings,
+                                { source_field: "", source_label: "", target_field: f.api_name, target_label: f.label },
+                              ],
+                            }))}
+                            className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                          >
+                            <Plus className="h-3 w-3" />
+                            {f.label}
+                            <span className="text-red-400 font-mono text-[10px]">({f.api_name})</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-red-500">Click a field above to add a mapping row for it.</p>
+                    </div>
+                  );
+                })()}
+
                 <Button variant="outline" size="sm" onClick={addMapping}><Plus className="mr-1.5 h-3.5 w-3.5" />Add Mapping</Button>
               </>
             )}
@@ -1651,6 +1881,15 @@ export default function EditSyncPage() {
         );
 
       case 8:
+        return <MatchStrategyStep
+          matchStrategy={state.match_strategy}
+          targetFields={targetFields}
+          targetObjectLabel={state.target_object}
+          onChange={(ms) => setState((p) => ({ ...p, match_strategy: ms }))}
+          onEnter={loadTargetFieldsForMatch}
+        />;
+
+      case 9:
         return (
           <div className="space-y-6">
             <div>
@@ -1747,7 +1986,7 @@ export default function EditSyncPage() {
           </div>
         );
 
-      case 9:
+      case 10:
         return (
           <div className="space-y-6">
             <div className="space-y-2">
@@ -1925,7 +2164,7 @@ export default function EditSyncPage() {
         <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 1}>
           <ArrowLeft className="mr-1.5 h-4 w-4" />Back
         </Button>
-        {step < 9 ? (
+        {step < 10 ? (
           <Button className="gradient-bg border-0 text-white hover:opacity-90" onClick={goNext} disabled={!canProceed()}>
             Continue<ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>

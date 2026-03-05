@@ -132,7 +132,7 @@ export default function CpqPage() {
         <div>
           <h1 className="text-2xl font-bold">Migrations</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Dependency-aware sync jobs for Salesforce CPQ, Revenue Cloud Advanced, and complex object graphs.
+            One-click bulk transfers between orgs — move any records, any objects, in any order.
           </p>
         </div>
         <Button className="gradient-bg border-0 text-white hover:opacity-90" asChild>
@@ -151,8 +151,7 @@ export default function CpqPage() {
           </div>
           <h2 className="text-lg font-semibold">No migrations yet</h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Migrations jobs let you sync related objects in the correct dependency order — so foreign keys are never broken.
-            Perfect for syncing Product2 → Pricebook → PricebookEntry → Quotes → Quote Lines.
+            Migrations let you push any records from one org to another on demand — Accounts, Contacts, custom objects, whatever you need. Set your objects, map your fields, and run it.
           </p>
           <Button className="gradient-bg border-0 text-white hover:opacity-90 mt-6" asChild>
             <Link href="/migrations/new">

@@ -413,9 +413,7 @@ function OrgsPageContent() {
                 </div>
                 <div>
                   <p className="font-medium">Production Org</p>
-                  <p className="text-sm text-muted-foreground">
-                    login.salesforce.com
-                  </p>
+                  <p className="text-sm text-muted-foreground">login.salesforce.com</p>
                 </div>
                 <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
               </div>
@@ -427,9 +425,7 @@ function OrgsPageContent() {
                 </div>
                 <div>
                   <p className="font-medium">Sandbox Org</p>
-                  <p className="text-sm text-muted-foreground">
-                    test.salesforce.com
-                  </p>
+                  <p className="text-sm text-muted-foreground">test.salesforce.com</p>
                 </div>
                 <ExternalLink className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary" />
               </div>

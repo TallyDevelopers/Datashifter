@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
     // Exchange the authorization code for tokens (with PKCE verifier)
     const tokens = await exchangeCodeForTokens(code, statePayload.env, codeVerifier);
 
-    // Fetch the org's name and ID using the access token
-    const orgInfo = await getOrgInfo(tokens.access_token, tokens.instance_url);
+    // Fetch the org's name and ID — pass identity URL from token response to avoid extra round-trip
+    const orgInfo = await getOrgInfo(tokens.access_token, tokens.instance_url, tokens.id);
 
     // Get our internal customer record
     const { data: customer } = await supabase
@@ -119,7 +119,8 @@ export async function GET(request: NextRequest) {
     return successRes;
   } catch (err) {
     console.error("Salesforce callback error:", err);
-    const errRes = NextResponse.redirect(`${APP_URL}/orgs?error=connection_failed`);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    const errRes = NextResponse.redirect(`${APP_URL}/orgs?error=${encodeURIComponent(message)}`);
     errRes.cookies.delete("sf_code_verifier");
     return errRes;
   }

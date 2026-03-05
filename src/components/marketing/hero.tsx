@@ -39,8 +39,8 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mx-auto mt-8 max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
         >
-          Keep your Salesforce orgs{" "}
-          <span className="gradient-text">in sync — automatically</span>
+          Move Salesforce data{" "}
+          <span className="gradient-text">any way you need it</span>
         </motion.h1>
 
         <motion.p
@@ -49,9 +49,9 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          OrgSync connects two or more Salesforce orgs and automatically copies records between them — 
-          whenever something is created, updated, or deleted. You choose what syncs, where it goes, 
-          and who owns it. We handle everything else.
+          Live bidirectional sync between orgs. Bulk migrations for any object. 
+          CPQ and Revenue Cloud Accelerator templates. AI that catches problems before they happen.
+          All in one platform — no code, no engineers required.
         </motion.p>
 
         <motion.div
@@ -79,11 +79,11 @@ export function Hero() {
           className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground"
         >
           {[
-            "Connects any two Salesforce orgs",
-            "No code, no setup, no admin required",
-            "Works with Production & Sandbox",
-            "Records sync every 2 minutes",
-            "Full error visibility & retry",
+            "Live sync every 2 minutes",
+            "Bulk migrations — any object",
+            "CPQ & Revenue Cloud templates",
+            "AI pre-flight & Sync Assistant",
+            "Zero record data stored",
           ].map((pill) => (
             <span key={pill} className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1">
               <span className="h-1 w-1 rounded-full bg-primary/60" />

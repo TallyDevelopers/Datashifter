@@ -3,11 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ArrowLeft, Building2, List, GitBranch, Columns, Filter,
   Clock, Sparkles, FileText, Plus, Trash2, GripVertical,
   ArrowRight, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
-  Info, Loader2, ArrowUpDown,
+  Info, Loader2, ArrowUpDown, AlertCircle, Search, Target, ShieldCheck, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -130,6 +131,7 @@ interface JobStep {
   target_object_label: string;
   field_mappings: FieldMapping[];
   filters: FilterRule[];
+  match_strategy: { type: "none" | "field" | "name"; field?: string };
   expanded: boolean;
   // loaded fields
   sourceFields: OrgField[];
@@ -155,9 +157,10 @@ const STEPS = [
   { id: 3, label: "Order", icon: GitBranch },
   { id: 4, label: "Mappings", icon: Columns },
   { id: 5, label: "Filters", icon: Filter },
-  { id: 6, label: "Schedule", icon: Clock },
-  { id: 7, label: "AI Review", icon: Sparkles },
-  { id: 8, label: "Confirm", icon: FileText },
+  { id: 6, label: "Matching", icon: Search },
+  { id: 7, label: "Schedule", icon: Clock },
+  { id: 8, label: "AI Review", icon: Sparkles },
+  { id: 9, label: "Confirm", icon: FileText },
 ];
 
 const OPERATORS = ["=", "!=", "contains", "starts with", "is empty", "is not empty", ">", "<", ">=", "<="];
@@ -305,6 +308,7 @@ export default function NewCpqJobPage() {
       target_object_label: s.target_object,
       field_mappings: [],
       filters: [],
+      match_strategy: { type: "none" as const },
       expanded: false,
       sourceFields: [],
       targetFields: [],
@@ -339,6 +343,7 @@ export default function NewCpqJobPage() {
             target_object: s.target_object,
             field_mappings: s.field_mappings,
             filters: s.filters,
+            match_strategy: s.match_strategy ?? { type: "none" },
           })),
         }),
       });
@@ -357,14 +362,15 @@ export default function NewCpqJobPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 1: return !!state.source_org_id && !!state.target_org_id && state.source_org_id !== state.target_org_id && !!state.name;
+      case 1: return !!state.source_org_id && !!state.target_org_id && !!state.name;
       case 2: return state.steps.length > 0;
       case 3: return state.steps.length > 0;
       case 4: return true;
       case 5: return true;
-      case 6: return true;
+      case 6: return true; // Matching — always can proceed (none is valid)
       case 7: return true;
       case 8: return true;
+      case 9: return true;
       default: return false;
     }
   };
@@ -377,7 +383,7 @@ export default function NewCpqJobPage() {
         autoMap(i);
       }
     }
-    if (step === 6) {
+    if (step === 7) {
       await runAiReview();
     }
     setStep((s) => s + 1);
@@ -392,9 +398,10 @@ export default function NewCpqJobPage() {
       case 3: return <StepOrder state={state} setState={setState} />;
       case 4: return <StepMappings state={state} setState={setState} loadStepFields={loadStepFields} autoMap={autoMap} />;
       case 5: return <StepFilters state={state} setState={setState} />;
-      case 6: return <StepSchedule state={state} setState={setState} />;
-      case 7: return <StepAiReview warnings={aiWarnings} loading={aiLoading} acknowledged={acknowledgedWarnings} setAcknowledged={setAcknowledgedWarnings} onRerun={runAiReview} onJumpToStep={setStep} steps={state.steps} />;
-      case 8: return <StepConfirm state={state} setState={setState} errors={errors} />;
+      case 6: return <StepMatchStrategy state={state} setState={setState} />;
+      case 7: return <StepSchedule state={state} setState={setState} />;
+      case 8: return <StepAiReview warnings={aiWarnings} loading={aiLoading} acknowledged={acknowledgedWarnings} setAcknowledged={setAcknowledgedWarnings} onRerun={runAiReview} onJumpToStep={setStep} steps={state.steps} />;
+      case 9: return <StepConfirm state={state} setState={setState} errors={errors} />;
       default: return null;
     }
   }
@@ -466,39 +473,44 @@ export default function NewCpqJobPage() {
           </Link>
           <h1 className="text-2xl font-bold">New Migration</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Define an ordered chain of objects to migrate with dependency-aware execution.
+            Select your orgs, pick your objects, map your fields, and push the data.
           </p>
         </div>
 
         {/* Step indicator */}
-        <div className="mb-8 overflow-x-auto">
-          <div className="flex items-center gap-1 min-w-max">
-            {STEPS.map((s, i) => {
-              const isComplete = step > s.id;
-              const isCurrent = step === s.id;
-              return (
-                <div key={s.id} className="flex items-center gap-1">
-                  <div className={cn(
-                    "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-all",
-                    isComplete ? "gradient-bg text-white" :
-                    isCurrent ? "bg-primary/10 border border-primary/30 text-primary" :
-                    "bg-muted text-muted-foreground"
-                  )}>
-                    {isComplete ? (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <s.icon className="h-3.5 w-3.5" />
+        {(() => {
+          const currentStep = STEPS.find((s) => s.id === step);
+          return (
+            <div className="mb-8 space-y-3">
+              <div className="flex items-center">
+                {STEPS.map((s, i) => (
+                  <div key={s.id} className="flex items-center flex-1 last:flex-none">
+                    <div className={cn(
+                      "flex shrink-0 items-center justify-center rounded-full font-semibold transition-all",
+                      step === s.id
+                        ? "h-8 w-8 gradient-bg text-white shadow-md shadow-primary/30 text-xs"
+                        : step > s.id
+                        ? "h-6 w-6 bg-primary/15 text-primary text-[10px]"
+                        : "h-6 w-6 bg-muted text-muted-foreground text-[10px]"
+                    )}>
+                      {step > s.id ? <Check className="h-3 w-3" /> : s.id}
+                    </div>
+                    {i < STEPS.length - 1 && (
+                      <div className={cn("flex-1 h-px mx-1.5 transition-colors", step > s.id ? "bg-primary/30" : "bg-border")} />
                     )}
-                    {s.label}
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div className={cn("h-px w-4", step > s.id ? "bg-primary" : "bg-border")} />
-                  )}
+                ))}
+              </div>
+              <div className="flex items-center justify-between px-0.5">
+                <div className="flex items-center gap-2">
+                  {currentStep && <currentStep.icon className="h-4 w-4 text-primary" />}
+                  <span className="text-sm font-semibold text-foreground">{currentStep?.label}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <span className="text-xs text-muted-foreground">Step {step} of {STEPS.length}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Step content */}
         <div className="mb-8">{renderStep()}</div>
@@ -509,9 +521,10 @@ export default function NewCpqJobPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          {step < 8 ? (
-            <Button onClick={goNext} disabled={!canProceed()} className="gradient-bg border-0 text-white hover:opacity-90">
-              {step === 6 ? (
+          {step < 9 ? (
+            <div className="relative group">
+              <Button onClick={goNext} disabled={!canProceed()} className="gradient-bg border-0 text-white hover:opacity-90">
+              {step === 7 ? (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
                   Run AI Review
@@ -523,6 +536,12 @@ export default function NewCpqJobPage() {
                 </>
               )}
             </Button>
+              {step === 2 && !canProceed() && (
+                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block whitespace-nowrap rounded-lg bg-foreground px-3 py-1.5 text-xs text-background shadow-lg">
+                  Click &ldquo;+ Add Step&rdquo; to add your object to the chain first
+                </div>
+              )}
+            </div>
           ) : (
             <Button onClick={handleSave} disabled={saving} className="gradient-bg border-0 text-white hover:opacity-90">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
@@ -550,7 +569,7 @@ function StepOrgs({ state, setState, orgs }: {
           <label className="text-sm font-medium">Job Name</label>
           <input
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            placeholder="e.g. CPQ Products & Pricing Sync"
+                            placeholder="e.g. Account Migration — Prod to Sandbox"
             value={state.name}
             onChange={(e) => setState((p) => ({ ...p, name: e.target.value }))}
           />
@@ -584,7 +603,12 @@ function StepOrgs({ state, setState, orgs }: {
           />
         </div>
         {state.source_org_id && state.target_org_id && state.source_org_id === state.target_org_id && (
-          <p className="text-sm text-destructive">Source and target org must be different.</p>
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700">
+              Same org selected for source and target. Records will be read and written to the same org — useful for testing.
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -603,41 +627,14 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
       <div className="space-y-2">
-        {orgs.filter((o) => o.id !== exclude).map((org) => (
-          <button
-            key={org.id}
-            onClick={() => onChange(value === org.id ? "" : org.id)}
-            className={cn(
-              "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
-              value === org.id ? "border-primary bg-primary/5" : "hover:border-primary/30 hover:bg-accent"
-            )}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-bg">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{org.label}</p>
-              <p className="text-xs text-muted-foreground">{org.is_sandbox ? "Sandbox" : "Production"}</p>
-            </div>
-            {value === org.id && <CheckCircle2 className="h-4 w-4 text-primary ml-auto shrink-0" />}
-          </button>
-        ))}
-        {orgs.filter((o) => o.id !== exclude).length === 0 && (
+        {orgs.length === 0 && (
           <div className="rounded-xl border-2 border-dashed border-muted p-5 flex flex-col items-center gap-2 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
               <Building2 className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm font-medium">
-                {exclude
-                  ? "No other orgs available"
-                  : "No orgs connected yet"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {exclude
-                  ? "You need at least two connected orgs to set up a migration — one to read from and one to write to."
-                  : "Connect a Salesforce org first so you can select it here."}
-              </p>
+              <p className="text-sm font-medium">No orgs connected yet</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Connect a Salesforce org first.</p>
             </div>
             <Link
               href="/orgs"
@@ -648,6 +645,28 @@ function OrgSelector({ label, subtitle, value, orgs, exclude, onChange }: {
             </Link>
           </div>
         )}
+        {orgs.map((org) => {
+          const isSelected = value === org.id;
+          return (
+            <button
+              key={org.id}
+              onClick={() => onChange(isSelected ? "" : org.id)}
+              className={cn(
+                "w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                isSelected ? "border-primary bg-primary/5" : "hover:border-primary/30 hover:bg-accent"
+              )}
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg gradient-bg">
+                <Building2 className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">{org.label}</p>
+                <p className="text-xs text-muted-foreground">{org.is_sandbox ? "Sandbox" : "Production"}</p>
+              </div>
+              {isSelected && <CheckCircle2 className="h-4 w-4 text-primary ml-auto shrink-0" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -664,6 +683,18 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
   const [newSourceObj, setNewSourceObj] = useState("");
   const [newTargetObj, setNewTargetObj] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  const [targetObjects, setTargetObjects] = useState<OrgObject[]>([]);
+  const [loadingTargetObjects, setLoadingTargetObjects] = useState(false);
+
+  useEffect(() => {
+    if (!targetOrg?.id) return;
+    setLoadingTargetObjects(true);
+    fetch(`/api/salesforce/orgs/${targetOrg.id}/objects`)
+      .then((r) => r.json())
+      .then((d) => setTargetObjects(d.objects ?? []))
+      .catch(() => setTargetObjects([]))
+      .finally(() => setLoadingTargetObjects(false));
+  }, [targetOrg?.id]);
 
   const addStep = () => {
     if (!newSourceObj || !newTargetObj) return;
@@ -683,6 +714,7 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
           target_object_label: newTargetObj,
           field_mappings: [],
           filters: [],
+          match_strategy: { type: "none" as const },
           expanded: false,
           sourceFields: [],
           targetFields: [],
@@ -737,25 +769,38 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Source Object</label>
-              <select
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              <SearchableSelect
+                options={sourceObjects.map((o) => ({ value: o.api_name, label: o.label, sublabel: o.api_name }))}
                 value={newSourceObj}
-                onChange={(e) => setNewSourceObj(e.target.value)}
-              >
-                <option value="">Select object…</option>
-                {sourceObjects.map((o) => (
-                  <option key={o.api_name} value={o.api_name}>{o.label} ({o.api_name})</option>
-                ))}
-              </select>
+                onChange={(v) => { setNewSourceObj(v); if (!newTargetObj) setNewTargetObj(v); }}
+                placeholder="Select object…"
+                searchPlaceholder="Search objects..."
+                emptyMessage="No objects found. Sync metadata first."
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Target Object (API Name)</label>
-              <input
-                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder={newSourceObj || "e.g. SBQQ__Quote__c"}
-                value={newTargetObj}
-                onChange={(e) => setNewTargetObj(e.target.value)}
-              />
+              <label className="text-xs text-muted-foreground">Target Object</label>
+              {loadingTargetObjects ? (
+                <div className="flex h-10 items-center gap-2 rounded-lg border px-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading...
+                </div>
+              ) : targetObjects.length > 0 ? (
+                <SearchableSelect
+                  options={targetObjects.map((o) => ({ value: o.api_name, label: o.label, sublabel: o.api_name }))}
+                  value={newTargetObj}
+                  onChange={setNewTargetObj}
+                  placeholder="Select object…"
+                  searchPlaceholder="Search objects..."
+                  emptyMessage="No objects found."
+                />
+              ) : (
+                <input
+                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder={newSourceObj || "e.g. SBQQ__Quote__c"}
+                  value={newTargetObj}
+                  onChange={(e) => setNewTargetObj(e.target.value)}
+                />
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Step Label (optional)</label>
@@ -772,7 +817,10 @@ function StepObjects({ state, setState, sourceObjects, targetOrg }: {
             size="sm"
             onClick={addStep}
             disabled={!newSourceObj || !newTargetObj}
-            className="border-primary/30 text-primary hover:bg-primary/5"
+            className={cn(
+              "border-primary/30 text-primary hover:bg-primary/5 transition-all",
+              newSourceObj && newTargetObj && "animate-pulse border-primary text-primary bg-primary/5"
+            )}
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add Step
@@ -817,10 +865,10 @@ function StepOrder({ state, setState }: {
         </p>
       </CardHeader>
       <CardContent className="space-y-2">
-        <div className="rounded-xl border bg-amber-50 border-amber-200 px-4 py-3 mb-4 flex items-start gap-3">
-          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700">
-            <strong>CPQ tip:</strong> Standard order — <code>Product2</code> → <code>Pricebook2</code> → <code>PricebookEntry</code> → <code>SBQQ__Quote__c</code> → <code>SBQQ__QuoteLine__c</code>. Parent records must exist in the target org before children can reference them.
+        <div className="rounded-xl border bg-muted/40 border-muted px-4 py-3 mb-4 flex items-start gap-3">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            Drag steps to reorder. Parent objects must come before child objects — if a step fails, all subsequent steps are skipped to prevent broken foreign keys.
           </p>
         </div>
         {state.steps.map((s, i) => (
@@ -919,19 +967,35 @@ function StepMappings({ state, setState, loadStepFields, autoMap }: {
       </div>
       {state.steps.map((s, stepIdx) => (
         <Card key={s.id}>
-          <button
-            onClick={() => toggleExpand(stepIdx)}
-            className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors rounded-xl"
-          >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full gradient-bg text-xs font-bold text-white">
-              {s.step_order}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">{s.label}</p>
-              <p className="text-xs text-muted-foreground">{s.source_object} → {s.target_object} · {s.field_mappings.length} field{s.field_mappings.length !== 1 ? "s" : ""} mapped</p>
-            </div>
-            {expandedSteps.has(stepIdx) ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </button>
+          {(() => {
+            const mappedTargets = new Set(s.field_mappings.map((m) => m.target_field));
+            const unmappedReqCount = s.fieldsLoaded
+              ? s.targetFields.filter((f) => f.is_required && f.is_createable && !mappedTargets.has(f.api_name)).length
+              : 0;
+            return (
+              <button
+                onClick={() => toggleExpand(stepIdx)}
+                className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors rounded-xl"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full gradient-bg text-xs font-bold text-white">
+                  {s.step_order}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{s.label}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs text-muted-foreground">{s.source_object} → {s.target_object} · {s.field_mappings.length} field{s.field_mappings.length !== 1 ? "s" : ""} mapped</p>
+                    {unmappedReqCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                        <AlertTriangle className="h-3 w-3" />
+                        {unmappedReqCount} required unmapped
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {expandedSteps.has(stepIdx) ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            );
+          })()}
 
           {expandedSteps.has(stepIdx) && (
             <CardContent className="pt-0 space-y-3">
@@ -968,27 +1032,31 @@ function StepMappings({ state, setState, loadStepFields, autoMap }: {
                       </div>
                       {s.field_mappings.map((m, mapIdx) => (
                         <div key={mapIdx} className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-center">
-                          <select
-                            className="w-full rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          <SearchableSelect
+                            options={s.sourceFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                            }))}
                             value={m.source_field}
-                            onChange={(e) => updateMapping(stepIdx, mapIdx, "source_field", e.target.value)}
-                          >
-                            <option value="">Source…</option>
-                            {s.sourceFields.map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMapping(stepIdx, mapIdx, "source_field", v)}
+                            placeholder="Source…"
+                            searchPlaceholder="Search source fields..."
+                          />
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <select
-                            className="w-full rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          <SearchableSelect
+                            options={s.targetFields.map((f) => ({
+                              value: f.api_name,
+                              label: f.label,
+                              sublabel: f.api_name,
+                              required: f.is_required,
+                            }))}
                             value={m.target_field}
-                            onChange={(e) => updateMapping(stepIdx, mapIdx, "target_field", e.target.value)}
-                          >
-                            <option value="">Target…</option>
-                            {s.targetFields.map((f) => (
-                              <option key={f.api_name} value={f.api_name}>{f.label} ({f.api_name})</option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateMapping(stepIdx, mapIdx, "target_field", v)}
+                            placeholder="Target…"
+                            searchPlaceholder="Search target fields..."
+                            grouped
+                          />
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeMapping(stepIdx, mapIdx)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -996,6 +1064,50 @@ function StepMappings({ state, setState, loadStepFields, autoMap }: {
                       ))}
                     </div>
                   )}
+
+                  {/* Unmapped required target fields */}
+                  {(() => {
+                    const mappedTargets = new Set(s.field_mappings.map((m) => m.target_field));
+                    const unmapped = s.targetFields.filter(
+                      (f) => f.is_required && f.is_createable && !mappedTargets.has(f.api_name)
+                    );
+                    if (unmapped.length === 0) return null;
+                    return (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                          <p className="text-xs font-semibold text-red-700">
+                            {unmapped.length} required {unmapped.length === 1 ? "field" : "fields"} not mapped — records will fail without {unmapped.length === 1 ? "it" : "them"}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {unmapped.map((f) => (
+                            <button
+                              key={f.api_name}
+                              type="button"
+                              onClick={() => setState((prev) => {
+                                const steps = [...prev.steps];
+                                steps[stepIdx] = {
+                                  ...steps[stepIdx],
+                                  field_mappings: [
+                                    ...steps[stepIdx].field_mappings,
+                                    { source_field: "", source_label: "", target_field: f.api_name, target_label: f.label },
+                                  ],
+                                };
+                                return { ...prev, steps };
+                              })}
+                              className="inline-flex items-center gap-1 rounded-full border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                            >
+                              <Plus className="h-3 w-3" />
+                              {f.label}
+                              <span className="text-red-400 font-mono text-[10px]">({f.api_name})</span>
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-red-500">Click a field above to add a mapping row for it.</p>
+                      </div>
+                    );
+                  })()}
                 </>
               )}
             </CardContent>
@@ -1084,16 +1196,18 @@ function StepFilters({ state, setState }: {
                 return (
                   <div key={filterIdx} className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground w-4">{filterIdx === 0 ? "IF" : "AND"}</span>
-                    <select
-                      className="rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    <SearchableSelect
+                      options={s.sourceFields.map((sf) => ({
+                        value: sf.api_name,
+                        label: sf.label,
+                        sublabel: sf.api_name,
+                      }))}
                       value={f.field}
-                      onChange={(e) => updateFilter(stepIdx, filterIdx, "field", e.target.value)}
-                    >
-                      <option value="">Field…</option>
-                      {s.sourceFields.map((sf) => (
-                        <option key={sf.api_name} value={sf.api_name}>{sf.label} ({sf.api_name})</option>
-                      ))}
-                    </select>
+                      onChange={(v) => updateFilter(stepIdx, filterIdx, "field", v)}
+                      placeholder="Field…"
+                      searchPlaceholder="Search fields..."
+                      className="w-40"
+                    />
                     <select
                       className="rounded-lg border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
                       value={f.operator}
@@ -1138,7 +1252,155 @@ function StepFilters({ state, setState }: {
   );
 }
 
-// ─── Step 6: Schedule ─────────────────────────────────────────────────────────
+// ─── Step 6: Match Strategy ───────────────────────────────────────────────────
+
+function StepMatchStrategy({ state, setState }: {
+  state: BuilderState;
+  setState: React.Dispatch<React.SetStateAction<BuilderState>>;
+}) {
+  const matchOptions = [
+    {
+      type: "none" as const,
+      icon: <ShieldCheck className="h-6 w-6" />,
+      color: "text-green-600",
+      selectedBg: "bg-green-50 border-green-500 ring-2 ring-green-200",
+      label: "Always Create New",
+      desc: "OrgSync only creates records it hasn't seen before. Records that already exist in the target org are left completely alone.",
+      bestFor: "Best for clean target orgs or when you don't care about pre-existing records.",
+      badge: "Recommended",
+      badgeClass: "bg-green-100 text-green-700",
+    },
+    {
+      type: "field" as const,
+      icon: <Search className="h-6 w-6" />,
+      color: "text-blue-600",
+      selectedBg: "bg-blue-50 border-blue-500 ring-2 ring-blue-200",
+      label: "Match by Field",
+      desc: "Before creating, OrgSync checks if a record already exists using a field you pick (like Email or Account Number). If it finds one, it links and updates it instead of duplicating.",
+      bestFor: "Best when your target org already has data you want to keep in sync.",
+      badge: null,
+      badgeClass: "",
+    },
+    {
+      type: "name" as const,
+      icon: <Target className="h-6 w-6" />,
+      color: "text-purple-600",
+      selectedBg: "bg-purple-50 border-purple-500 ring-2 ring-purple-200",
+      label: "Match by Name",
+      desc: "Same as above but always matches on the Name field. Quick to set up — no field selection needed.",
+      bestFor: "Best for Accounts, Contacts, or any object where Name is unique.",
+      badge: null,
+      badgeClass: "",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold">Existing Record Matching</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          What should OrgSync do when records already exist in the target org before this migration starts? This setting applies to <span className="font-medium text-foreground">all steps</span> in this migration.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {state.steps.map((step, stepIdx) => {
+          const currentStrategy = step.match_strategy ?? { type: "none" };
+          return (
+            <div key={step.id} className="rounded-xl border bg-card">
+              <div className="px-4 py-3 border-b bg-muted/30 rounded-t-xl">
+                <p className="text-sm font-semibold">{step.label || step.source_object}</p>
+                <p className="text-xs text-muted-foreground">{step.source_object} → {step.target_object}</p>
+              </div>
+              <div className="p-4 space-y-2">
+                {matchOptions.map((opt) => {
+                  const selected = currentStrategy.type === opt.type;
+                  return (
+                    <button
+                      key={opt.type}
+                      type="button"
+                      onClick={() => setState((prev) => ({
+                        ...prev,
+                        steps: prev.steps.map((s, i) => i === stepIdx
+                          ? { ...s, match_strategy: { type: opt.type, field: s.match_strategy?.field } }
+                          : s
+                        ),
+                      }))}
+                      className={cn(
+                        "w-full rounded-xl border p-3 text-left transition-all",
+                        selected ? opt.selectedBg : "hover:border-primary/40 hover:bg-muted/30"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className={selected ? opt.color : "text-muted-foreground"}>{opt.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold">{opt.label}</p>
+                            {opt.badge && (
+                              <span className={cn("text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-0.5", opt.badgeClass)}>{opt.badge}</span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
+                        </div>
+                        <div className={cn(
+                          "shrink-0 mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center",
+                          selected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                        )}>
+                          {selected && <Check className="h-3 w-3 text-white" />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {currentStrategy.type === "field" && (
+                  <div className="pt-2 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Match field for <span className="font-semibold text-foreground">{step.target_object}</span>:</p>
+                    <SearchableSelect
+                      options={step.targetFields
+                        .filter((f) => ["string", "email", "phone", "url", "id", "reference", "double", "integer", "currency"].includes(f.field_type))
+                        .map((f) => ({
+                          value: f.api_name,
+                          label: f.label,
+                          sublabel: f.api_name,
+                        }))}
+                      value={currentStrategy.field ?? ""}
+                      onChange={(v) => setState((prev) => ({
+                        ...prev,
+                        steps: prev.steps.map((s, i) => i === stepIdx
+                          ? { ...s, match_strategy: { type: "field", field: v } }
+                          : s
+                        ),
+                      }))}
+                      placeholder="Select a field to match on…"
+                      searchPlaceholder="Search fields…"
+                      emptyMessage={step.fieldsLoaded ? "No suitable fields found." : "Fields not loaded yet — go back to Mappings step first."}
+                    />
+                    {currentStrategy.field && (
+                      <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-600" />
+                        <span>OrgSync will look for existing <span className="font-semibold">{step.target_object}</span> records where <span className="font-mono font-semibold">{currentStrategy.field}</span> matches before creating new ones.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {currentStrategy.type === "name" && (
+                  <div className="flex items-start gap-2 rounded-lg bg-purple-50 px-3 py-2 text-xs text-purple-800">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-purple-600" />
+                    <span>OrgSync will match <span className="font-semibold">{step.target_object}</span> records by the <span className="font-mono font-semibold">Name</span> field.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 7: Schedule ─────────────────────────────────────────────────────────
 
 function StepSchedule({ state, setState }: {
   state: BuilderState;
